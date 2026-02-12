@@ -164,12 +164,15 @@ public class BossAI : MonoBehaviour
     // ฟังก์ชันนี้ไว้เรียกจาก Animation Event (ตอนดาบฟันโดน)
     public void DealDamage()
     {
-        // เช็คระยะอีกทีก็ได้ หรือใช้ Collider ที่ดาบ
+        // เช็คระยะอีกทีก็ได้ หรือใช้ Collider ที่ดาบ (ระยะ + นิดหน่อยเผื่ออนิเมชั่นพุ่งไปข้างหน้า)
         if (player != null && Vector3.Distance(transform.position, player.position) <= attackRange + 1.0f)
         {
-            // โค้ดลดเลือดผู้เล่น (สมมติว่ามี Script PlayerHealth)
-            // PlayerHealth ph = player.GetComponent<PlayerHealth>();
-            // if (ph != null) ph.TakeDamage(10);
+            // โค้ดลดเลือดผู้เล่น
+            PlayerHealth ph = player.GetComponent<PlayerHealth>();
+            if (ph != null)
+            {
+                ph.TakeDamage(10);
+            }
             
             Debug.Log("Boss: Deal Damage to Player!");
         }
