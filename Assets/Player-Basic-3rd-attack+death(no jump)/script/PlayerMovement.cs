@@ -11,7 +11,8 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
     private Animator anim;
-    private Transform cam;
+    [Header("Camera Reference")]
+    public Transform cam;
 
     private float turnSmoothVelocity;
     private float speedSmoothVelocity;
@@ -22,102 +23,75 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        anim = GetComponent<Animator>();
-
-        // ถ้าหา Animator ไม่เจอที่ Root ให้ลองหาใน Child
-        if (anim == null)
-        {
-            anim = GetComponentInChildren<Animator>();
-        }
-
-        if (Camera.main != null)
+        anim = GetComponentInChildren<Animator>();
+        
+        // ถ้าไม่ได้ลากกล้องใส่ใน Inspector ให้หา Main Camera อัตโนมัติ
+        if (cam == null && Camera.main != null) 
         {
             cam = Camera.main.transform;
         }
-        else
-        {
-            Debug.LogError("PlayerMovement: ไม่พบ Camera.main! ตรวจสอบว่ากล้องมี Tag 'MainCamera'");
-        }
-
+        
         rb.freezeRotation = true;
-        rb.interpolation = RigidbodyInterpolation.Interpolate;
     }
 
     void Update()
     {
-        // รับ Input
+        // เช็คว่ากำลังเล่นอนิเมชั่นโจมตีอยู่หรือไม่ (ต้องตั้ง Tag ที่ State ใน Animator ว่า Attack)
+        bool isAttacking = anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack");
+
+        if (isAttacking)
+        {
+            movementInput = Vector3.zero;
+            // แก้เป็น Velocity Y ตามรูป Animator ของคุณ
+            anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
+            return;
+        }
+
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
-
         movementInput = new Vector3(horizontal, 0f, vertical).normalized;
+
+        // ตรวจสอบกล้องเผื่อกรณีที่มีการเปลี่ยนกล้องหรือกล้องยังไม่ถูกโหลด
+        if (cam == null && Camera.main != null) cam = Camera.main.transform;
         isRunning = Input.GetKey(KeyCode.LeftShift);
 
-        // ส่งค่าเข้า Blend Tree
+        // ส่งค่าไปที่ Blend Tree (0 = Idle, 1 = Walk, 2 = Run)
         float targetAnimSpeed = movementInput.magnitude > 0.1f ? (isRunning ? 2f : 1f) : 0f;
 
         if (anim != null)
         {
-            anim.SetFloat("Velocity Z", targetAnimSpeed, 0.1f, Time.deltaTime);
-            anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
+            // แก้เป็น Velocity Y ให้ตรงกับ Parameter ใน Unity ของคุณ
+            anim.SetFloat("Velocity Y", targetAnimSpeed, 0.1f, Time.deltaTime);
         }
     }
 
     void FixedUpdate()
     {
-        // ตรวจสอบว่า anim และ cam ไม่เป็น null
-        if (anim != null && anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
+        // ล็อคไม่ให้เลื่อนตำแหน่งขณะโจมตี
+        if (anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
         {
             rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
             return;
         }
 
-        if (cam == null) return; // ถ้าไม่มีกล้องจะเดินไม่ได้
-
-        if (movementInput.magnitude >= 0.1f)
-        {
-            // === ส่วนสำคัญของ Relative Movement ===
-
-            // เอาทิศกล้องมา แต่ตัดแกน Y ออก
-            Vector3 camForward = cam.forward;
-            Vector3 camRight = cam.right;
-
-            camForward.y = 0f;
-            camRight.y = 0f;
-
-            camForward.Normalize();
-            camRight.Normalize();
-
-            // คำนวณทิศทางที่ต้องเดินตามกล้อง
-            Vector3 targetMoveDir = (camForward * movementInput.z + camRight * movementInput.x).normalized;
-
-            float targetSpeed = isRunning ? runSpeed : walkSpeed;
-            
-            // Smooth Speed (ค่อยๆ เร่ง/ผ่อน)
-            currentSpeed = Mathf.SmoothDamp(currentSpeed, targetSpeed, ref speedSmoothVelocity, 0.1f);
-
-            // หมุนตัวละครแบบ Smooth (ค่อยๆ หันหน้า)
-            float targetAngle = Mathf.Atan2(targetMoveDir.x, targetMoveDir.z) * Mathf.Rad2Deg;
-            float smoothAngle = Mathf.SmoothDampAngle(
-                transform.eulerAngles.y,
-                targetAngle,
-                ref turnSmoothVelocity,
-                rotationSmoothTime
-            );
-
-            rb.MoveRotation(Quaternion.Euler(0f, smoothAngle, 0f));
-
-            // เคลื่อนที่ตามทิศทางที่หมุนไป (Relative to Character Forward which is now target dir-ish)
-            // หรือใช้ targetMoveDir โดยตรงเพื่อให้แม่นยำตามกล้อง
-            rb.linearVelocity = new Vector3(
-                targetMoveDir.x * currentSpeed,
-                rb.linearVelocity.y,
-                targetMoveDir.z * currentSpeed
-            );
-        }
-        else
+        if (cam == null || movementInput.magnitude < 0.1f)
         {
             currentSpeed = Mathf.SmoothDamp(currentSpeed, 0f, ref speedSmoothVelocity, 0.1f);
             rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+            return;
         }
+
+        Vector3 camForward = Vector3.Scale(cam.forward, new Vector3(1, 0, 1)).normalized;
+        Vector3 camRight = Vector3.Scale(cam.right, new Vector3(1, 0, 1)).normalized;
+        Vector3 targetMoveDir = (camForward * movementInput.z + camRight * movementInput.x).normalized;
+
+        float targetSpeed = isRunning ? runSpeed : walkSpeed;
+        currentSpeed = Mathf.SmoothDamp(currentSpeed, targetSpeed, ref speedSmoothVelocity, 0.1f);
+
+        float targetAngle = Mathf.Atan2(targetMoveDir.x, targetMoveDir.z) * Mathf.Rad2Deg;
+        float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, rotationSmoothTime);
+        rb.MoveRotation(Quaternion.Euler(0f, smoothAngle, 0f));
+
+        rb.linearVelocity = new Vector3(targetMoveDir.x * currentSpeed, rb.linearVelocity.y, targetMoveDir.z * currentSpeed);
     }
 }
