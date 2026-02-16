@@ -22,6 +22,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("Camera Reference")]
     public Transform cam;
 
+    [Header("Stamina Reference")]
+    public StaminaManager staminaManager;
+
     // ตัวแปรที่ใช้คำนวณความเร็วและการหมุน (แก้ Error CS0103)
     private float turnSmoothVelocity;
     private float speedSmoothVelocity;
@@ -49,7 +52,17 @@ public class PlayerMovement : MonoBehaviour
         // รับ Input หลบ
         if (Input.GetKeyDown(KeyCode.Space) && canDodge && !isAttacking && !isDodging)
         {
-            StartCoroutine(PerformDodgeRootMotion());
+            if (staminaManager != null)
+            {
+                if (staminaManager.UseStamina(staminaManager.dodgeStaminaCost))
+                {
+                    StartCoroutine(PerformDodgeRootMotion());
+                }
+            }
+            else
+            {
+                StartCoroutine(PerformDodgeRootMotion());
+            }
         }
 
         if (isAttacking || isDodging)
@@ -65,6 +78,21 @@ public class PlayerMovement : MonoBehaviour
         movementInput = new Vector3(horizontal, 0f, vertical).normalized;
 
         isRunning = Input.GetKey(KeyCode.LeftShift);
+
+        // Stamina integration for running
+        if (isRunning && movementInput.magnitude > 0.11f)
+        {
+            if (staminaManager != null)
+            {
+                // We consume per frame, so we multiply by delta time
+                bool hasStamina = staminaManager.UseStamina(staminaManager.runStaminaCost * Time.deltaTime);
+                if (!hasStamina)
+                {
+                    isRunning = false;
+                }
+            }
+        }
+
         float targetAnimSpeed = movementInput.magnitude > 0.1f ? (isRunning ? 2f : 1f) : 0f;
 
         if (anim != null)

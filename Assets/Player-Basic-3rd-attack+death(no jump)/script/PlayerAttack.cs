@@ -15,8 +15,12 @@ public class PlayerAttack : MonoBehaviour
     [Header("Attack Timing")]
     public float attackHitDelay = 0.2f;
 
+    [Header("Stamina Reference")]
+    public StaminaManager staminaManager;
+
     private Animator anim;
     private bool isLightAttack = true;
+    private bool isAttackingFlag = false;
 
     void Start()
     {
@@ -32,15 +36,28 @@ public class PlayerAttack : MonoBehaviour
 
     void Update()
     {
-        // ถ้ากำลังโจมตีอยู่ (Tag Attack) จะไม่รับ Input ใหม่
-        if (anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack")) return;
+        // ถ้ากำลังโจมตีอยู่ (จะเช็คทั้งจาก Tag และ Boolean Flag) จะไม่รับ Input ใหม่
+        if (isAttackingFlag || anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") || anim.IsInTransition(0)) return;
 
-        if (Input.GetMouseButtonDown(0)) PerformAttack(true);
-        else if (Input.GetMouseButtonDown(1)) PerformAttack(false);
+        if (Input.GetMouseButtonDown(0)) StartCoroutine(PerformAttack(true));
+        else if (Input.GetMouseButtonDown(1)) StartCoroutine(PerformAttack(false));
     }
 
-    void PerformAttack(bool isLight)
+    IEnumerator PerformAttack(bool isLight)
     {
+        isAttackingFlag = true;
+        // Stamina integration for attacking
+        if (staminaManager != null)
+        {
+            float cost = isLight ? staminaManager.lightAttackStaminaCost : staminaManager.heavyAttackStaminaCost;
+            if (!staminaManager.UseStamina(cost))
+            {
+                // Not enough stamina
+                isAttackingFlag = false;
+                yield break;
+            }
+        }
+
         isLightAttack = isLight;
 
         // Reset Trigger เก่าก่อนเพื่อป้องกันบัค
@@ -50,15 +67,14 @@ public class PlayerAttack : MonoBehaviour
         string triggerName = isLight ? "Is attack light" : "Is attack heavy";
         anim.SetTrigger(triggerName);
 
-        StopAllCoroutines();
-        StartCoroutine(DelayDealDamage(attackHitDelay));
-    }
-
-    // ฟังก์ชันที่แก้ไข Error เรื่อง Context
-    IEnumerator DelayDealDamage(float delay)
-    {
-        yield return new WaitForSeconds(delay);
+        // รอให้ดาเมจเกิดตามดีเลย์
+        yield return new WaitForSeconds(attackHitDelay);
         DealDamageToEnemy();
+
+        // รออีกสักพักเพื่อให้แอนิเมชันเริ่มเล่นหรือจบช่วงที่กันการกดซ้ำซ้อน
+        // หรือรอจนกว่าจะพ้นช่วง Attack Tag (เราจะใช้ cooldown สั้นๆ กันไว้ด้วย)
+        yield return new WaitForSeconds(0.3f); 
+        isAttackingFlag = false;
     }
 
     public void DealDamageToEnemy()
