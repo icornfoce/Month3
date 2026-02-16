@@ -32,8 +32,8 @@ BlendTree:
     m_CycleOffset: 0
     m_DirectBlendParameter: speed
     m_Mirror: 0
-  m_BlendParameter: valocity Y
-  m_BlendParameterY: valocity Z
+  m_BlendParameter: Velocity Y
+  m_BlendParameterY: Velocity Z
   m_MinThreshold: 0
   m_MaxThreshold: 0.5555556
   m_UseAutomaticThresholds: 1
@@ -179,10 +179,10 @@ AnimatorStateMachine:
     m_Position: {x: 350, y: 110, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3697563752543992097}
-    m_Position: {x: 210, y: -110, z: 0}
+    m_Position: {x: 360, y: -170, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3367304533348481007}
-    m_Position: {x: 130, y: -160, z: 0}
+    m_Position: {x: 150, y: -170, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -1408255151816364189}
     m_Position: {x: 600, y: 110, z: 0}
@@ -258,13 +258,13 @@ AnimatorController:
   m_Name: I dont give a fuck
   serializedVersion: 5
   m_AnimatorParameters:
-  - m_Name: valocity Y
+  - m_Name: Velocity Y
     m_Type: 1
     m_DefaultFloat: 2
     m_DefaultInt: 0
     m_DefaultBool: 0
     m_Controller: {fileID: 9100000}
-  - m_Name: valocity Z
+  - m_Name: Velocity Z
     m_Type: 1
     m_DefaultFloat: 0
     m_DefaultInt: 0
