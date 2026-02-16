@@ -763,6 +763,7 @@ MonoBehaviour:
   walkSpeed: 5
   runSpeed: 10
   rotationSmoothTime: 0.1
+  cam: {fileID: 351753177763270574}
 --- !u!1 &1227517802985919620
 GameObject:
   m_ObjectHideFlags: 0
