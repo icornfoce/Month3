@@ -49,7 +49,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
         {
-            rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
             return;
         }
 
@@ -88,16 +88,16 @@ public class PlayerMovement : MonoBehaviour
 
             // เคลื่อนที่ตามทิศทางที่หมุนไป (Relative to Character Forward which is now target dir-ish)
             // หรือใช้ targetMoveDir โดยตรงเพื่อให้แม่นยำตามกล้อง
-            rb.velocity = new Vector3(
+            rb.linearVelocity = new Vector3(
                 targetMoveDir.x * currentSpeed,
-                rb.velocity.y,
+                rb.linearVelocity.y,
                 targetMoveDir.z * currentSpeed
             );
         }
         else
         {
             currentSpeed = Mathf.SmoothDamp(currentSpeed, 0f, ref speedSmoothVelocity, 0.1f);
-            rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
         }
     }
 }
