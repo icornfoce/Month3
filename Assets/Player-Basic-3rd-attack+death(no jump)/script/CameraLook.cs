@@ -39,11 +39,7 @@ public class CameraFreeLook : MonoBehaviour
         // คำนวณตำแหน่งให้กล้องหมุนรอบ Target โดยมีระยะห่าง
         Vector3 position = target.position - (rotation * Vector3.forward * distanceFromTarget) + (Vector3.up * heightOffset);
 
-        // รวมค่า Camera Shake เข้าไปด้วย (ถ้ามี)
-        if (CameraShake.Instance != null)
-        {
-            position += rotation * CameraShake.Instance.CurrentShakeOffset;
-        }
+
 
         transform.rotation = rotation;
         transform.position = position;

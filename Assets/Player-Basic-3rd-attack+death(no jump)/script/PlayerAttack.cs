@@ -11,9 +11,6 @@ public class PlayerAttack : MonoBehaviour
     public float attackRange = 1.5f;        // รัศมีการตรวจจับ
     public LayerMask enemyLayer;            // Layer ของศัตรู (ตั้งเป็น "Enemy")
 
-    [Header("Camera Shake (กล้องสั่น)")]
-    public float shakeOnHitDuration = 0.12f;
-    public float shakeOnHitMagnitude = 0.08f;
 
     [Header("Attack Timing (เวลาที่ดาเมจจะเข้า)")]
     public float attackHitDelay = 0.2f;     // เวลาหลังจากกดตี จนถึงจังหวะที่ดาบโดน (วินาที) - ปรับได้ใน Inspector
@@ -103,12 +100,6 @@ public class PlayerAttack : MonoBehaviour
                 hitSomething = true;
                 Debug.Log($"Player: Deal {damage} Damage to Boss!");
             }
-        }
-
-        // เช็คว่ามี CameraShake หรือไม่
-        if (hitSomething && CameraShake.Instance != null)
-        {
-            CameraShake.Instance.Shake(shakeOnHitDuration, shakeOnHitMagnitude);
         }
     }
 

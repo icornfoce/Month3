@@ -9,9 +9,6 @@ public class PlayerHealth : MonoBehaviour
     [Header("Status (สถานะ)")]
     public bool isDead = false;
 
-    [Header("Camera Shake on Hit (กล้องสั่นเมื่อโดนตี)")]
-    public float shakeOnHitDuration = 0.2f;
-    public float shakeOnHitMagnitude = 0.15f;
 
     // เก็บ Reference ไปยัง Component อื่นๆ เพื่อปิดการใช้งานเมื่อตาย
     private PlayerMovement movement;
@@ -37,11 +34,7 @@ public class PlayerHealth : MonoBehaviour
         // เล่น Animation เจ็บ (Hurt/Hit)
         if (anim != null) anim.SetTrigger("Hit");
 
-        // สั่นกล้องเมื่อโดนตี
-        if (CameraShake.Instance != null)
-        {
-            CameraShake.Instance.Shake(shakeOnHitDuration, shakeOnHitMagnitude);
-        }
+
 
         if (currentHealth <= 0)
         {

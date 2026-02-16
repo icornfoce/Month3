@@ -6,9 +6,6 @@ public class HealthManager : MonoBehaviour
     private bool isDead = false;
     private Animator anim;
 
-    [Header("Camera Shake")]
-    public float shakeDuration = 0.2f;
-    public float shakeMagnitude = 0.15f;
 
     void Start()
     {
@@ -40,11 +37,7 @@ public class HealthManager : MonoBehaviour
         health -= amount;
         Debug.Log($"Player HP: {health}");
 
-        // สั่นกล้อง
-        if (CameraShake.Instance != null)
-        {
-            CameraShake.Instance.Shake(shakeDuration, shakeMagnitude);
-        }
+
 
         // ถ้ามี Animation เจ็บ (Hit) ก็ใส่ตรงนี้ได้
         // anim.SetTrigger("Hit"); 

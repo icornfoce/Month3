@@ -23,7 +23,21 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         anim = GetComponent<Animator>();
-        cam = Camera.main.transform;
+
+        // ถ้าหา Animator ไม่เจอที่ Root ให้ลองหาใน Child
+        if (anim == null)
+        {
+            anim = GetComponentInChildren<Animator>();
+        }
+
+        if (Camera.main != null)
+        {
+            cam = Camera.main.transform;
+        }
+        else
+        {
+            Debug.LogError("PlayerMovement: ไม่พบ Camera.main! ตรวจสอบว่ากล้องมี Tag 'MainCamera'");
+        }
 
         rb.freezeRotation = true;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
@@ -41,17 +55,23 @@ public class PlayerMovement : MonoBehaviour
         // ส่งค่าเข้า Blend Tree
         float targetAnimSpeed = movementInput.magnitude > 0.1f ? (isRunning ? 2f : 1f) : 0f;
 
-        anim.SetFloat("Velocity Z", targetAnimSpeed, 0.1f, Time.deltaTime);
-        anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
+        if (anim != null)
+        {
+            anim.SetFloat("Velocity Z", targetAnimSpeed, 0.1f, Time.deltaTime);
+            anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
+        }
     }
 
     void FixedUpdate()
     {
-        if (anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
+        // ตรวจสอบว่า anim และ cam ไม่เป็น null
+        if (anim != null && anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
         {
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
             return;
         }
+
+        if (cam == null) return; // ถ้าไม่มีกล้องจะเดินไม่ได้
 
         if (movementInput.magnitude >= 0.1f)
         {
