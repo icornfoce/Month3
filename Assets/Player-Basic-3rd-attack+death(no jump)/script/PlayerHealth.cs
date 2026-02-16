@@ -9,6 +9,10 @@ public class PlayerHealth : MonoBehaviour
     [Header("Status (สถานะ)")]
     public bool isDead = false;
 
+    [Header("Camera Shake on Hit (กล้องสั่นเมื่อโดนตี)")]
+    public float shakeOnHitDuration = 0.2f;
+    public float shakeOnHitMagnitude = 0.15f;
+
     // เก็บ Reference ไปยัง Component อื่นๆ เพื่อปิดการใช้งานเมื่อตาย
     private PlayerMovement movement;
     private PlayerAttack attack;
@@ -30,8 +34,14 @@ public class PlayerHealth : MonoBehaviour
         currentHealth -= amount;
         Debug.Log($"Player HP: {currentHealth}/{maxHealth}");
 
-        // ถ้ามี Animation เจ็บ (Hurt/Hit) ให้ใส่ตรงนี้
-        // if (anim != null) anim.SetTrigger("Hit");
+        // เล่น Animation เจ็บ (Hurt/Hit)
+        if (anim != null) anim.SetTrigger("Hit");
+
+        // สั่นกล้องเมื่อโดนตี
+        if (CameraShake.Instance != null)
+        {
+            CameraShake.Instance.Shake(shakeOnHitDuration, shakeOnHitMagnitude);
+        }
 
         if (currentHealth <= 0)
         {
@@ -47,17 +57,11 @@ public class PlayerHealth : MonoBehaviour
         // เล่น Animation ตาย
         if (anim != null) 
         {
-            anim.SetTrigger("Death"); // ต้องมี Parameter "Death" ใน Animator
-            // หรือถ้าใช้แบบเดิมของโมเดลนี้อาจจะเป็น bool isDead
-            // anim.SetBool("IsDead", true); 
+            anim.SetTrigger("Death");
         }
 
         // ปิดการควบคุม
         if (movement != null) movement.enabled = false;
         if (attack != null) attack.enabled = false;
-        
-        // ปิด Physics หรือ Collider ถ้าจำเป็น
-        // GetComponent<CapsuleCollider>().enabled = false;
-        // GetComponent<Rigidbody>().isKinematic = true;
     }
 }

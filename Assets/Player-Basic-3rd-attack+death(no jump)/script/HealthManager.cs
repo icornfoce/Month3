@@ -6,6 +6,10 @@ public class HealthManager : MonoBehaviour
     private bool isDead = false;
     private Animator anim;
 
+    [Header("Camera Shake")]
+    public float shakeDuration = 0.2f;
+    public float shakeMagnitude = 0.15f;
+
     void Start()
     {
         anim = GetComponent<Animator>();
@@ -24,8 +28,26 @@ public class HealthManager : MonoBehaviour
         }
 
         // ทดสอบกด F/G
-        if (Input.GetKeyDown(KeyCode.F)) health -= 10;
+        if (Input.GetKeyDown(KeyCode.F)) TakeDamage(10);
         if (Input.GetKeyDown(KeyCode.G)) health += 10;
+    }
+
+    // ฟังก์ชันรับดาเมจจาก Boss
+    public void TakeDamage(float amount)
+    {
+        if (isDead) return;
+
+        health -= amount;
+        Debug.Log($"Player HP: {health}");
+
+        // สั่นกล้อง
+        if (CameraShake.Instance != null)
+        {
+            CameraShake.Instance.Shake(shakeDuration, shakeMagnitude);
+        }
+
+        // ถ้ามี Animation เจ็บ (Hit) ก็ใส่ตรงนี้ได้
+        // anim.SetTrigger("Hit"); 
     }
 
     void Die()
@@ -45,8 +67,7 @@ public class HealthManager : MonoBehaviour
             rb.isKinematic = true; // ล็อคไม่ให้ขยับได้อีก
         }
 
-        // 3. ปิดสคริปต์การควบคุม (ต้องพิมพ์ชื่อไฟล์สคริปต์ให้ตรงกับที่คุณตั้งชื่อไว้)
-        // ถ้าคุณตั้งชื่อไฟล์ว่า PlayerController หรือ PlayerMovement ให้เปลี่ยนชื่อตามนั้นครับ
+        // 3. ปิดสคริปต์การควบคุม
         if (GetComponent<PlayerMovement>()  != null)
             GetComponent<PlayerMovement>().enabled = false;
 
