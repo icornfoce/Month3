@@ -6,7 +6,7 @@ public class PlayerHealth : MonoBehaviour
     [Header("Health Settings (ค่าพลังชีวิต)")]
     public float maxHealth = 100f;
     public float currentHealth;
-    
+
     [Header("Status (สถานะ)")]
     public bool isDead = false;
     public bool isTakingDamage = false;
@@ -15,8 +15,6 @@ public class PlayerHealth : MonoBehaviour
     public float takeDamageDuration = 0.5f;
     private Coroutine staggerCoroutine;
 
-
-    // เก็บ Reference ไปยัง Component อื่นๆ เพื่อปิดการใช้งานเมื่อตาย
     private PlayerMovement movement;
     private PlayerAttack attack;
     private Animator anim;
@@ -24,19 +22,15 @@ public class PlayerHealth : MonoBehaviour
     void Start()
     {
         currentHealth = maxHealth;
-        
         movement = GetComponent<PlayerMovement>();
         attack = GetComponent<PlayerAttack>();
-        anim = GetComponentInChildren<Animator>(); // ใช้แบบ InChildren เพื่อความชัวร์
+        anim = GetComponentInChildren<Animator>();
 
-        if (anim != null) 
+        // ตั้งค่าเริ่มต้นใน Animator
+        if (anim != null)
         {
-            anim.SetBool("IstakeDMG", false);
-            Debug.Log("PlayerHealth: Animator found and Reset IstakeDMG to false.");
-        }
-        else
-        {
-            Debug.LogWarning("PlayerHealth: Animator NOT found! Please check if Animator is on a child object.");
+            if (HasParameter("health")) anim.SetFloat("health", currentHealth);
+            if (HasParameter("IstakeDMG")) anim.SetBool("IstakeDMG", false);
         }
     }
 
@@ -44,34 +38,42 @@ public class PlayerHealth : MonoBehaviour
     {
         if (isDead) return;
 
-        Debug.Log($"PlayerHealth: TakeDamage called! Amount: {amount}");
         currentHealth -= amount;
         Debug.Log($"Player HP: {currentHealth}/{maxHealth}");
 
-        // เล่น Animation เจ็บ และตั้งสถานะล็อคการโจมตี
-        if (anim != null) 
+        // 1. ส่งค่าเลือดไปที่ Animator (ชื่อตัวแปร health ตัวพิมพ์เล็ก)
+        if (anim != null && HasParameter("health"))
+        {
+            anim.SetFloat("health", currentHealth);
+        }
+
+        // 2. เช็คเงื่อนไขตาย (ถ้าน้อยกว่า 0.1 ให้เล่นแอนิเมชัน Death)
+        if (currentHealth < 0.1f)
+        {
+            Die();
+            return;
+        }
+
+        // 3. เล่นแอนิเมชันเจ็บ (ใช้ชื่อ IstakeDMG ตามที่คุณแจ้ง)
+        if (anim != null && !isDead)
         {
             if (staggerCoroutine != null) StopCoroutine(staggerCoroutine);
             staggerCoroutine = StartCoroutine(TakeDamageAnimation());
-        }
-
-        if (currentHealth <= 0)
-        {
-            Die();
         }
     }
 
     private IEnumerator TakeDamageAnimation()
     {
-        Debug.Log("PlayerHealth: Starting TakeDamageAnimation (Setting IstakeDMG = true)");
         isTakingDamage = true;
-        anim.SetBool("IstakeDMG", true);
+
+        // เริ่มเล่นท่าเจ็บ
+        if (HasParameter("IstakeDMG")) anim.SetBool("IstakeDMG", true);
 
         yield return new WaitForSeconds(takeDamageDuration);
 
-        Debug.Log("PlayerHealth: Finishing TakeDamageAnimation (Setting IstakeDMG = false)");
+        // จบจังหวะชะงัก
+        if (HasParameter("IstakeDMG")) anim.SetBool("IstakeDMG", false);
         isTakingDamage = false;
-        anim.SetBool("IstakeDMG", false);
         staggerCoroutine = null;
     }
 
@@ -82,24 +84,63 @@ public class PlayerHealth : MonoBehaviour
             StopCoroutine(staggerCoroutine);
             staggerCoroutine = null;
         }
-
         isTakingDamage = false;
-        if (anim != null) anim.SetBool("IstakeDMG", false);
+        if (anim != null && HasParameter("IstakeDMG")) anim.SetBool("IstakeDMG", false);
     }
 
     void Die()
     {
+        if (isDead) return;
         isDead = true;
-        Debug.Log("Player Died!");
 
-        // เล่น Animation ตาย
-        if (anim != null) 
+        Debug.Log("Player Died! Locking everything.");
+
+        if (anim != null)
         {
-            anim.SetTrigger("Death");
+            // 1. ส่งค่าเลือดเป็น 0 เพื่อให้เข้าเงื่อนไขท่าตาย
+            anim.SetFloat("health", 0f);
+
+            // 2. ปิดการใช้ Root Motion (ถ้ามี) เพื่อไม่ให้ตัวละครขยับตามแอนิเมชันตาย
+            anim.applyRootMotion = false;
+
+            // 3. ปรับความเร็ว Animator เป็น 1 (เผื่อติดค่าหน่วงจากท่าอื่น) 
+            // หรือถ้าอยากให้หยุดกึกที่ท่าตายเฟรมสุดท้าย สามารถเขียนเพิ่มได้ในภายหลัง
         }
 
-        // ปิดการควบคุม
-        if (movement != null) movement.enabled = false;
-        if (attack != null) attack.enabled = false;
+        // 4. ปิด Script การควบคุมทั้งหมด
+        if (movement != null)
+        {
+            movement.enabled = false;
+        }
+        if (attack != null)
+        {
+            attack.enabled = false;
+        }
+
+        // 5. จัดการ Rigidbody (หยุดแรงเฉื่อยและปิดฟิสิกส์ไม่ให้ไถล)
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero; // หยุดความเร็วสะสม
+            rb.isKinematic = true;           // ปิดแรงภายนอก ไม่ให้บอสเดินชนแล้วเรากระเด็น
+            rb.useGravity = false;           // ปิดแรงโน้มถ่วง
+        }
+
+        // 6. ปิด Collider เพื่อไม่ให้ศัตรูโจมตีซ้ำได้ หรือเดินติดศพ
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+
+        // หยุด Coroutine ทั้งหมดที่อาจจะค้างอยู่ (เช่น ท่าเจ็บ)
+        StopAllCoroutines();
+    }
+
+    private bool HasParameter(string paramName)
+    {
+        if (anim == null) return false;
+        foreach (var param in anim.parameters)
+        {
+            if (param.name == paramName) return true;
+        }
+        return false;
     }
 }
