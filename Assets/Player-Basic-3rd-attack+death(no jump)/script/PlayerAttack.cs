@@ -21,6 +21,9 @@ public class PlayerAttack : MonoBehaviour
     [Header("Movement Reference")]
     public PlayerMovement playerMovement;
 
+    [Header("Health Reference")]
+    public PlayerHealth playerHealth;
+
     private Animator anim;
     private bool isLightAttack = true;
     private bool isAttackingFlag = false;
@@ -30,6 +33,7 @@ public class PlayerAttack : MonoBehaviour
     {
         anim = GetComponent<Animator>();
         if (playerMovement == null) playerMovement = GetComponent<PlayerMovement>();
+        if (playerHealth == null) playerHealth = GetComponent<PlayerHealth>();
         
         if (attackPoint == null)
         {
@@ -42,9 +46,11 @@ public class PlayerAttack : MonoBehaviour
 
     void Update()
     {
-        // ถ้ากำลังติด Lock จากการหลบ หรือกำลังโจมตีอยู่ จะไม่รับ Input ใหม่
+        // ถ้ากำลังติด Lock จากการหลบ กำลังโจมตีอยู่ หรือกำลังโดนดาเมจ จะไม่รับ Input ใหม่
         bool isDodgeLocked = playerMovement != null && playerMovement.isDodgeLockingMovement;
-        if (isAttackingFlag || isDodgeLocked || anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") || anim.IsInTransition(0)) return;
+        bool isTakingDMG = playerHealth != null && playerHealth.isTakingDamage;
+
+        if (isAttackingFlag || isDodgeLocked || isTakingDMG || anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") || anim.IsInTransition(0)) return;
 
         if (Input.GetMouseButtonDown(0)) attackCoroutine = StartCoroutine(PerformAttack(true));
         else if (Input.GetMouseButtonDown(1)) attackCoroutine = StartCoroutine(PerformAttack(false));

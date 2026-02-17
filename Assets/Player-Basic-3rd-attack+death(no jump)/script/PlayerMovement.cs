@@ -30,6 +30,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("Attack Reference")]
     public PlayerAttack playerAttack;
 
+    [Header("Health Reference")]
+    public PlayerHealth playerHealth;
+
     // ตัวแปรที่ใช้คำนวณความเร็วและการหมุน (แก้ Error CS0103)
     private float turnSmoothVelocity;
     private float speedSmoothVelocity;
@@ -49,6 +52,7 @@ public class PlayerMovement : MonoBehaviour
         anim.applyRootMotion = false; 
 
         if (playerAttack == null) playerAttack = GetComponent<PlayerAttack>();
+        if (playerHealth == null) playerHealth = GetComponent<PlayerHealth>();
     }
 
     void Update()
@@ -68,6 +72,12 @@ public class PlayerMovement : MonoBehaviour
             if (isAttacking && playerAttack != null)
             {
                 playerAttack.CancelAttack();
+            }
+
+            // ถ้ากำลังติดสถานะโดนดาเมจ ให้ยกเลิกสถานะนั้นเพื่อหลบได้ทันที (แบบ Elden Ring)
+            if (playerHealth != null && playerHealth.isTakingDamage)
+            {
+                playerHealth.ClearStagger();
             }
 
             if (staminaManager != null)

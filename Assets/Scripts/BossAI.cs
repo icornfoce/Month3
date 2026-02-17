@@ -131,16 +131,19 @@ public class BossAI : MonoBehaviour
 
         if (isAttacking || isUsingSkill)
         {
-            agent.isStopped = true;
+            if (agent.isOnNavMesh) agent.isStopped = true;
             if (!isUsingSkill) FaceTarget(player.position);
             agent.velocity = Vector3.zero;
         }
         else
         {
-            agent.isStopped = false;
-            agent.SetDestination(player.position);
-            // อัปเดต stoppingDistance เผื่อมีการปรับ attackRange
-            agent.stoppingDistance = attackRange - 0.5f; 
+            if (agent.isOnNavMesh)
+            {
+                agent.isStopped = false;
+                agent.SetDestination(player.position);
+                // อัปเดต stoppingDistance เผื่อมีการปรับ attackRange
+                agent.stoppingDistance = attackRange - 0.5f; 
+            }
 
             CheckAttack(distanceToPlayer);
         }
@@ -208,7 +211,7 @@ public class BossAI : MonoBehaviour
     IEnumerator SkillSequence()
     {
         // --- 1. ถอยหลังจาก Player อย่างรวดเร็ว ---
-        agent.isStopped = true;
+        if (agent.isOnNavMesh) agent.isStopped = true;
         agent.velocity = Vector3.zero;
 
         // หันหน้าเข้าหา Player ก่อนถอย
@@ -253,7 +256,7 @@ public class BossAI : MonoBehaviour
 
         // --- 5. กลับสู่สถานะปกติ ---
         isUsingSkill = false;
-        if (!isDead)
+        if (!isDead && agent.isOnNavMesh)
         {
             agent.isStopped = false;
         }
@@ -350,7 +353,7 @@ public class BossAI : MonoBehaviour
         animator.SetTrigger(animDeathID);
 
         // หยุด NavMeshAgent
-        agent.isStopped = true;
+        if (agent.isOnNavMesh) agent.isStopped = true;
         agent.velocity = Vector3.zero;
 
         // ปิดสคริปต์ (ไม่ให้ Update ทำงานต่อ)
@@ -376,12 +379,18 @@ public class BossAI : MonoBehaviour
             // เลือกดาเมจตามท่าที่ใช้
             float damage = lastAttackWasPower ? powerDamage : attackDamage;
 
-            // เปลี่ยนจาก PlayerHealth เป็น HealthManager
-            HealthManager ph = player.GetComponent<HealthManager>();
+            // เปลี่ยนจาก PlayerHealth เป็น PlayerHealth (เพื่อให้ใช้ระบบ stagger ได้)
+            PlayerHealth ph = player.GetComponent<PlayerHealth>();
             if (ph != null)
             {
                 ph.TakeDamage(damage);
                 Debug.Log($"Boss: Hit Player! Dealt {damage} damage. (Dist: {currentDistance:F1})");
+            }
+            else
+            {
+                // Fallback เผื่อใช้ HealthManager
+                HealthManager hm = player.GetComponent<HealthManager>();
+                if (hm != null) hm.TakeDamage(damage);
             }
         }
         else
