@@ -27,16 +27,24 @@ public class PlayerHealth : MonoBehaviour
         
         movement = GetComponent<PlayerMovement>();
         attack = GetComponent<PlayerAttack>();
-        anim = GetComponent<Animator>();
+        anim = GetComponentInChildren<Animator>(); // ใช้แบบ InChildren เพื่อความชัวร์
 
-        // รีเซ็ตค่าเพื่อป้องกันการเล่นอัตโนมัติตอนเริ่มเกม
-        if (anim != null) anim.SetBool("IstakeDMG", false);
+        if (anim != null) 
+        {
+            anim.SetBool("IstakeDMG", false);
+            Debug.Log("PlayerHealth: Animator found and Reset IstakeDMG to false.");
+        }
+        else
+        {
+            Debug.LogWarning("PlayerHealth: Animator NOT found! Please check if Animator is on a child object.");
+        }
     }
 
     public void TakeDamage(float amount)
     {
         if (isDead) return;
 
+        Debug.Log($"PlayerHealth: TakeDamage called! Amount: {amount}");
         currentHealth -= amount;
         Debug.Log($"Player HP: {currentHealth}/{maxHealth}");
 
@@ -55,11 +63,13 @@ public class PlayerHealth : MonoBehaviour
 
     private IEnumerator TakeDamageAnimation()
     {
+        Debug.Log("PlayerHealth: Starting TakeDamageAnimation (Setting IstakeDMG = true)");
         isTakingDamage = true;
         anim.SetBool("IstakeDMG", true);
 
         yield return new WaitForSeconds(takeDamageDuration);
 
+        Debug.Log("PlayerHealth: Finishing TakeDamageAnimation (Setting IstakeDMG = false)");
         isTakingDamage = false;
         anim.SetBool("IstakeDMG", false);
         staggerCoroutine = null;

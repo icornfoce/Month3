@@ -25,7 +25,7 @@ public class HealthManager : MonoBehaviour
         }
 
         // ทดสอบกด F/G
-        if (Input.GetKeyDown(KeyCode.F)) TakeDamage(10);
+        if (Input.GetKeyDown(KeyCode.H)) TakeDamage(10);
         if (Input.GetKeyDown(KeyCode.G)) health += 10;
     }
 
