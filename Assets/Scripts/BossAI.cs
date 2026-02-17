@@ -70,6 +70,10 @@ public class BossAI : MonoBehaviour
     private int animDeathID;
     private int animSkillID;
 
+    [Header("Parryable Settings")]
+    public bool attackIsParryable = true; // ท่าปกติ Parry ได้ไหม
+    public bool powerIsParryable = false; // ท่า Power Parry ได้ไหม (เช่น ท่าใหญ่ไม่ควรปัดได้)
+
     [Header("Audio Settings")]
     public AudioClip skillSound;            // เสียงตอนใช้สกิล
     private AudioSource audioSource;
@@ -365,40 +369,46 @@ public class BossAI : MonoBehaviour
     }
 
     // ========== ฟังก์ชันทำดาเมจใส่ Player (Auto-called by Coroutine) ==========
+    // ใน BossAI.cs
+
     public void DealDamage()
     {
         if (player == null || isDead) return;
 
-        // เช็คระยะอีกที (เผื่อผู้เล่นหนีทัน)
-        // บวกระยะเพิ่มเล็กน้อยเผื่อ Animation ก้าวเท้า
         float hitDistanceCheck = attackRange + 2.0f;
         float currentDistance = Vector3.Distance(transform.position, player.position);
 
         if (currentDistance <= hitDistanceCheck)
         {
-            // เลือกดาเมจตามท่าที่ใช้
-            float damage = lastAttackWasPower ? powerDamage : attackDamage;
-
-            // เปลี่ยนจาก PlayerHealth เป็น PlayerHealth (เพื่อให้ใช้ระบบ stagger ได้)
+            // 1. ดึง Component สุขภาพและระบบปัดป้องของผู้เล่น
             PlayerHealth ph = player.GetComponent<PlayerHealth>();
+            PlayerParry pp = player.GetComponent<PlayerParry>();
+
             if (ph != null)
             {
+                // 2. เช็คว่าท่าที่บอสใช้ตอนนี้ "ปัดได้" หรือไม่
+                bool currentAttackParryable = lastAttackWasPower ? powerIsParryable : attackIsParryable;
+
+                // 3. ตรวจสอบสถานะ Parry ณ วินาทีที่ดาเมจกำลังจะเข้า (หลังผ่าน Delay แล้ว)
+                if (pp != null && pp.isParryingState && currentAttackParryable)
+                {
+                    // --- กรณี Parry สำเร็จ ---
+                    Debug.Log("<color=cyan><b>[PARRY SUCCESS]</b></color> บอสโจมตีถูกปัดป้อง!");
+
+                    // ทำให้บอสชะงัก (Stagger) แทน
+                    animator.SetTrigger(animHitID);
+
+                    // (ตัวเลือก) คุณอาจจะเล่นเสียง "เคร้ง!" หรือ Effect ประกายไฟตรงนี้
+                    return; // จบฟังก์ชันทันที ไม่ทำดาเมจใส่ผู้เล่น
+                }
+
+                // --- กรณี Parry พลาด หรือ ท่านี้ปัดไม่ได้ ---
+                float damage = lastAttackWasPower ? powerDamage : attackDamage;
                 ph.TakeDamage(damage);
-                Debug.Log($"Boss: Hit Player! Dealt {damage} damage. (Dist: {currentDistance:F1})");
             }
-            else
-            {
-                // Fallback เผื่อใช้ HealthManager
-                HealthManager hm = player.GetComponent<HealthManager>();
-                if (hm != null) hm.TakeDamage(damage);
-            }
-        }
-        else
-        {
-            Debug.Log($"Boss: Missed Player! (Dist: {currentDistance:F1} > {hitDistanceCheck})");
         }
     }
-    
+
     // วาด Gizmos ใน Editor เพื่อดูระยะ
     void OnDrawGizmosSelected()
     {
@@ -411,4 +421,6 @@ public class BossAI : MonoBehaviour
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, skillRange);  // วงฟ้า = ระยะใช้สกิล
     }
+
+
 }
