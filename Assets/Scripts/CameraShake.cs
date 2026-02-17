@@ -31,37 +31,17 @@ public class CameraShake : MonoBehaviour
     /// </summary>
     public void Shake(float duration = -1f, float magnitude = -1f)
     {
-        if (duration < 0) duration = defaultDuration;
-        if (magnitude < 0) magnitude = defaultMagnitude;
+        // Disabled Camera Shake as requested
+        // if (duration < 0) duration = defaultDuration;
+        // if (magnitude < 0) magnitude = defaultMagnitude;
 
-        // ถ้าสั่นอยู่แล้ว ให้หยุดอันเก่าก่อน (หรือจะ blend ก็ได้ แต่ง่ายสุดคือเริ่มใหม่)
-        StopAllCoroutines();
-        StartCoroutine(ShakeCoroutine(duration, magnitude));
+        // // ถ้าสั่นอยู่แล้ว ให้หยุดอันเก่าก่อน (หรือจะ blend ก็ได้ แต่ง่ายสุดคือเริ่มใหม่)
+        // StopAllCoroutines();
+        // StartCoroutine(ShakeCoroutine(duration, magnitude));
     }
 
     private IEnumerator ShakeCoroutine(float duration, float magnitude)
     {
-        isShaking = true;
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            // สร้าง offset สุ่ม
-            float x = Random.Range(-1f, 1f) * magnitude;
-            float y = Random.Range(-1f, 1f) * magnitude;
-
-            CurrentShakeOffset = new Vector3(x, y, 0f);
-
-            // ค่อยๆ ลด magnitude ลงเรื่อยๆ ให้จางหายไป
-            float progress = elapsed / duration;
-            float currentMagnitude = magnitude * (1f - progress);
-            magnitude = currentMagnitude;
-
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        CurrentShakeOffset = Vector3.zero; // รีเซ็ตเมื่อจบ
-        isShaking = false;
+        yield break; // Do nothing
     }
 }

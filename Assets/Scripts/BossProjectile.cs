@@ -7,7 +7,7 @@ public class BossProjectile : MonoBehaviour
     public float speed = 14f;             // ความเร็วกระสุนตอนพุ่งไป Player
     public float damage = 25f;            // ดาเมจ
     public float hoverDuration = 5f;      // เวลาลอยอยู่กับที่ก่อนพุ่ง (วินาที)
-    public float lifetimeAfterLaunch = 8f; // เวลาก่อน auto-destroy หลังพุ่งออก
+    public float lifetimeAfterLaunch = 5f; // เวลาก่อน auto-destroy หลังพุ่งออก
 
     [HideInInspector]
     public Transform target;              // ตัว Player (ตั้งค่าจาก BossAI)
@@ -17,27 +17,21 @@ public class BossProjectile : MonoBehaviour
 
     void Start()
     {
-        // === ตั้งค่า Rigidbody อัตโนมัติ ===
+        // ตั้งค่า Rigidbody อัตโนมัติ
         Rigidbody rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
             rb = gameObject.AddComponent<Rigidbody>();
         }
-        rb.isKinematic = true;                // ไม่ใช้ฟิสิกส์ (ไม่ตกลงพื้น)
-        rb.useGravity = false;                // ปิดแรงโน้มถ่วง
-        rb.freezeRotation = true;             // ล็อคการหมุนทุกแกน
-        rb.constraints = RigidbodyConstraints.FreezeRotation; // ล็อค Rotation X, Y, Z
+        rb.isKinematic = true;
+        rb.useGravity = false;
 
-        // === ตั้งค่า Collider ให้เป็น Trigger อัตโนมัติ ===
+        // ตั้งค่า Collider ให้เป็น Trigger
         Collider col = GetComponent<Collider>();
         if (col != null)
         {
-            col.isTrigger = true;  // ต้องเป็น Trigger เพื่อใช้ OnTriggerEnter
-            col.enabled = false;   // ปิดไว้ก่อนตอน Hover
+            col.isTrigger = true;
         }
-
-        // ล็อค Rotation ไม่ให้หมุน
-        transform.rotation = Quaternion.identity;
 
         // เริ่ม Coroutine: รอ hoverDuration แล้วค่อยพุ่ง
         StartCoroutine(HoverThenLaunch());
@@ -51,20 +45,12 @@ public class BossProjectile : MonoBehaviour
         // === คำนวณทิศทางไป Player (ตอนที่พุ่ง) ===
         if (target != null)
         {
-            // เล็งไปที่ตัว (บวกความสูงขึ้นมาหน่อย ไม่ให้เล็งเท้า)
-            Vector3 targetPoint = target.position + Vector3.up * 1.2f;
+            Vector3 targetPoint = target.position + Vector3.up * 1.0f;
             launchDirection = (targetPoint - transform.position).normalized;
         }
         else
         {
             launchDirection = transform.forward;
-        }
-
-        // เปิด Collider เมื่อพุ่งแล้ว
-        Collider col = GetComponent<Collider>();
-        if (col != null)
-        {
-            col.enabled = true;
         }
 
         isLaunched = true;
@@ -84,9 +70,7 @@ public class BossProjectile : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (!isLaunched) return;
-
-        // ★★★ ทำลายเฉพาะเมื่อชน Player เท่านั้น ★★★
+        // ชน Player → ทำดาเมจ → ทำลายตัวเอง
         if (other.CompareTag("Player"))
         {
             HealthManager hm = other.GetComponent<HealthManager>();
@@ -97,8 +81,13 @@ public class BossProjectile : MonoBehaviour
             }
 
             Destroy(gameObject);
+            return;
         }
 
-        // ชนอย่างอื่น (พื้น, กำแพง, Boss) → ไม่ทำอะไร ไม่ทำลาย
+        // ชนพื้น/กำแพง → ทำลายตัวเอง
+        if (!other.CompareTag("Player") && !other.CompareTag("Boss"))
+        {
+            Destroy(gameObject);
+        }
     }
 }
