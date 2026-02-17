@@ -18,13 +18,19 @@ public class PlayerAttack : MonoBehaviour
     [Header("Stamina Reference")]
     public StaminaManager staminaManager;
 
+    [Header("Movement Reference")]
+    public PlayerMovement playerMovement;
+
     private Animator anim;
     private bool isLightAttack = true;
     private bool isAttackingFlag = false;
+    private Coroutine attackCoroutine;
 
     void Start()
     {
         anim = GetComponent<Animator>();
+        if (playerMovement == null) playerMovement = GetComponent<PlayerMovement>();
+        
         if (attackPoint == null)
         {
             GameObject point = new GameObject("AttackPoint");
@@ -36,11 +42,12 @@ public class PlayerAttack : MonoBehaviour
 
     void Update()
     {
-        // ถ้ากำลังโจมตีอยู่ (จะเช็คทั้งจาก Tag และ Boolean Flag) จะไม่รับ Input ใหม่
-        if (isAttackingFlag || anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") || anim.IsInTransition(0)) return;
+        // ถ้ากำลังติด Lock จากการหลบ หรือกำลังโจมตีอยู่ จะไม่รับ Input ใหม่
+        bool isDodgeLocked = playerMovement != null && playerMovement.isDodgeLockingMovement;
+        if (isAttackingFlag || isDodgeLocked || anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") || anim.IsInTransition(0)) return;
 
-        if (Input.GetMouseButtonDown(0)) StartCoroutine(PerformAttack(true));
-        else if (Input.GetMouseButtonDown(1)) StartCoroutine(PerformAttack(false));
+        if (Input.GetMouseButtonDown(0)) attackCoroutine = StartCoroutine(PerformAttack(true));
+        else if (Input.GetMouseButtonDown(1)) attackCoroutine = StartCoroutine(PerformAttack(false));
     }
 
     IEnumerator PerformAttack(bool isLight)
@@ -75,6 +82,25 @@ public class PlayerAttack : MonoBehaviour
         // หรือรอจนกว่าจะพ้นช่วง Attack Tag (เราจะใช้ cooldown สั้นๆ กันไว้ด้วย)
         yield return new WaitForSeconds(0.3f); 
         isAttackingFlag = false;
+        attackCoroutine = null;
+    }
+
+    public void CancelAttack()
+    {
+        if (attackCoroutine != null)
+        {
+            StopCoroutine(attackCoroutine);
+            attackCoroutine = null;
+        }
+        
+        isAttackingFlag = false;
+        
+        // Reset Triggers and Tag impacts
+        anim.ResetTrigger("Is attack light");
+        anim.ResetTrigger("Is attack heavy");
+        
+        // เราไม่สามารถหยุด Animator animation ทันทีได้ในวิธีที่ง่ายที่สุด แต่การ Reset Trigger และ Flag 
+        // จะทำให้ PlayerMovement สามารถข้ามการเช็ค Tag Attack ได้ถ้าเราปรับโค้ดฝั่งนั้น
     }
 
     public void DealDamageToEnemy()

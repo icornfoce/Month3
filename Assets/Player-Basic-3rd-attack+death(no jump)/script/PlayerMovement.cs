@@ -12,9 +12,11 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Dodge Settings (Root Motion)")]
     public float dodgeCooldown = 1f;
+    public float dodgeLockoutDuration = 0.5f;
     public float iframeDuration = 0.5f;
     private bool canDodge = true;
     private bool isInvincible = false;
+    [HideInInspector] public bool isDodgeLockingMovement = false;
 
     private Rigidbody rb;
     private Animator anim;
@@ -24,6 +26,9 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Stamina Reference")]
     public StaminaManager staminaManager;
+
+    [Header("Attack Reference")]
+    public PlayerAttack playerAttack;
 
     // ตัวแปรที่ใช้คำนวณความเร็วและการหมุน (แก้ Error CS0103)
     private float turnSmoothVelocity;
@@ -42,16 +47,29 @@ public class PlayerMovement : MonoBehaviour
         rb.freezeRotation = true;
         // ปิด Root Motion ไว้ก่อนเพื่อให้โค้ดคุมการเดินปกติ
         anim.applyRootMotion = false; 
+
+        if (playerAttack == null) playerAttack = GetComponent<PlayerAttack>();
     }
 
     void Update()
     {
+        // อัปเดตทิศทางการเคลื่อนไหวก่อนเสมอ เพื่อให้การหลบ (Dodge) รู้ทิศทางที่ต้องการแม้ขณะโจมตี
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
+        movementInput = new Vector3(horizontal, 0f, vertical).normalized;
+
         bool isAttacking = anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack");
         bool isDodging = anim.GetCurrentAnimatorStateInfo(0).IsTag("Dodge");
 
-        // รับ Input หลบ
-        if (Input.GetKeyDown(KeyCode.Space) && canDodge && !isAttacking && !isDodging)
+        // รับ Input หลบ (อนุญาตให้หลบขณะโจมตีได้)
+        if (Input.GetKeyDown(KeyCode.Space) && canDodge && !isDodging)
         {
+            // ถ้ากำลังโจมตีอยู่ ให้ยกเลิกการโจมตี
+            if (isAttacking && playerAttack != null)
+            {
+                playerAttack.CancelAttack();
+            }
+
             if (staminaManager != null)
             {
                 if (staminaManager.UseStamina(staminaManager.dodgeStaminaCost))
@@ -65,7 +83,8 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (isAttacking || isDodging)
+        // ใช้ isDodgeLockingMovement แทน isDodgingTag เพื่อให้คลายล็อคได้เร็วกว่าแอนิเมชันจบ
+        if (isAttacking || isDodgeLockingMovement)
         {
             movementInput = Vector3.zero;
             anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
@@ -73,10 +92,6 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // รับ Input เดินปกติ
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
-        movementInput = new Vector3(horizontal, 0f, vertical).normalized;
-
         isRunning = Input.GetKey(KeyCode.LeftShift);
 
         // Stamina integration for running
@@ -114,18 +129,30 @@ public class PlayerMovement : MonoBehaviour
 
         // เปิด Root Motion ให้แอนิเมชันพาตัวละครขยับ (Not In-place)
         anim.applyRootMotion = true;
+        isDodgeLockingMovement = true;
         anim.SetTrigger("isDodging");
 
         yield return new WaitForSeconds(iframeDuration);
         isInvincible = false;
 
-        // รอจนแอนิเมชันเกือบจบ (สมมติท่าหลบใช้เวลาประมาณ 0.8-1 วินาที)
-        yield return new WaitForSeconds(0.4f); 
+        // รอจนพ้นระยะเวลา Lockout ที่ตั้งไว้ใน Inspector
+        // คำนวณเวลาที่เหลือหลังจากผ่านช่วง iframe ไปแล้ว
+        float remainingLockout = Mathf.Max(0, dodgeLockoutDuration - iframeDuration);
+        if (remainingLockout > 0)
+        {
+            yield return new WaitForSeconds(remainingLockout); 
+        }
 
-        // ปิด Root Motion เพื่อให้โค้ดกลับมาคุม Velocity ปกติ
+        // ปลดล็อคการเคลื่อนที่ทันที
+        isDodgeLockingMovement = false;
         anim.applyRootMotion = false; 
-        
-        yield return new WaitForSeconds(dodgeCooldown - iframeDuration - 0.4f);
+
+        // คำนวณ Cooldown ที่เหลือจริง
+        float remainingCooldown = dodgeCooldown - Mathf.Max(iframeDuration, dodgeLockoutDuration);
+        if (remainingCooldown > 0)
+        {
+            yield return new WaitForSeconds(remainingCooldown);
+        }
         canDodge = true;
     }
 
