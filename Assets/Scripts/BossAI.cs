@@ -28,12 +28,28 @@ public class BossAI : MonoBehaviour
     public GameObject projectilePrefab;     // ลาก Prefab กระสุนใส่ตรงนี้
     public Transform projectileSpawnPoint;  // (Optional) จุดที่อยากให้กระสุนเกิด
 
+    [Header("Dash Attack Settings (พุ่งชาร์จ)")]
+    public float dashCooldown = 10f;        // คูลดาวน์ Dash (วินาที)
+    public float dashSpeed = 20f;           // ความเร็วตอนพุ่ง
+    public float dashDamage = 35f;          // ดาเมจตอนพุ่งชน
+    public float dashRange = 12f;           // ระยะที่จะเริ่มใช้ Dash
+    public float dashMinRange = 5f;         // ระยะขั้นต่ำ (ไม่ Dash ถ้าอยู่ใกล้เกิน)
+    public float dashHitRadius = 2f;        // รัศมีที่ถือว่าชน Player
+
+    [Header("Projectile Rain Settings (ฝนกระสุน)")]
+    public float rainCooldown = 20f;        // คูลดาวน์ฝนกระสุน (วินาที)
+    public int rainProjectileCount = 5;     // จำนวนกระสุนต่อรอบ
+    public float rainSpreadAngle = 60f;     // มุมกระจายของพัด (องศา)
+    public float rainProjectileSpeed = 18f; // ความเร็วกระสุน Rain
+    public float rainDamage = 15f;          // ดาเมจต่อลูก
+    public float rainRange = 14f;           // ระยะที่จะเริ่มใช้ Rain
+
     [Header("Damage Settings (ค่าดาเมจ)")]
     public float attackDamage = 15f;        // ดาเมจท่าปกติ
     public float powerDamage = 30f;         // ดาเมจท่าพิเศษ
 
     [Header("Animation Timing (เวลาที่ดาเมจจะเข้า)")]
-    public float attackHitDelay = 0.5f;     // เวลาหลังจากเริ่มท่าโจมตี จนถึงจังหวะที่ดาบโดน (วินาที)
+    public float attackHitDelay = 1.25f;    // เวลาหลังจากเริ่มท่าโจมตี จนถึงจังหวะที่ดาบโดน (วินาที)
     public float powerHitDelay = 0.8f;      // เวลาหลังจากเริ่มท่า Power จนถึงจังหวะที่โดน (วินาที)
 
     [Header("Health Settings (ค่าพลังชีวิตบอส)")]
@@ -56,6 +72,8 @@ public class BossAI : MonoBehaviour
     private float lastAttackTime;
     private float lastPowerTime;
     private float lastSkillTime;
+    private float lastDashTime;
+    private float lastRainTime;
     private bool isAttacking = false;
     private bool isUsingPower = false;
     private bool isUsingSkill = false;      // กำลังใช้สกิลอยู่
@@ -154,21 +172,35 @@ public class BossAI : MonoBehaviour
         // ไม่รับคำสั่งโจมตีซ้อนถ้ากำลังโจมตีหรือใช้สกิลอยู่
         if (isAttacking || isUsingSkill) return;
 
-        // 1. สกิล (Skill) — ถอยหลังแล้วยิง Projectile
+        // 1. ฝนกระสุน (Projectile Rain) — ไกลสุด ยิงพัด 5 ลูก
+        if (distance <= rainRange && Time.time >= lastRainTime + rainCooldown && projectilePrefab != null)
+        {
+            PerformProjectileRain();
+            return;
+        }
+
+        // 2. สกิล (Skill) — ถอยหลังแล้วยิง Projectile
         if (distance <= skillRange && Time.time >= lastSkillTime + skillCooldown && projectilePrefab != null)
         {
             PerformSkill();
             return;
         }
 
-        // 2. ท่าพิเศษ (Use Power)
+        // 3. พุ่งชาร์จ (Dash Attack) — ระยะกลาง
+        if (distance <= dashRange && distance >= dashMinRange && Time.time >= lastDashTime + dashCooldown)
+        {
+            PerformDashAttack();
+            return;
+        }
+
+        // 4. ท่าพิเศษ (Use Power)
         if (distance <= powerRange && distance > attackRange && Time.time >= lastPowerTime + powerCooldown)
         {
              PerformUsePower();
              return;
         }
 
-        // 3. ท่าโจมตีปกติ (Attack)
+        // 5. ท่าโจมตีปกติ (Attack)
         if (distance <= attackRange && Time.time >= lastAttackTime + attackCooldown)
         {
             PerformAttack();
@@ -254,12 +286,20 @@ public class BossAI : MonoBehaviour
             audioSource.PlayOneShot(skillSound);
         }
 
-        // รอจังหวะ Animation ก่อนยิง Projectile
-        yield return new WaitForSeconds(skillAnimDelay);
+        // หมุนตาม Player ระหว่างรอ Animation (2.5 วินาที)
+        float skillTimer = 0f;
+        while (skillTimer < 2.5f)
+        {
+            if (isDead) { isUsingSkill = false; yield break; }
+            FaceTarget(player.position);
+            skillTimer += Time.deltaTime;
+            yield return null;
+        }
 
         // ยิง Projectile
         if (!isDead)
         {
+            FaceTargetInstant(player.position); // หันหน้าเข้าหา Player ทันทีก่อนยิง
             Debug.Log("Boss: Spawning Projectiles...");
             SpawnProjectiles();
         }
@@ -280,20 +320,23 @@ public class BossAI : MonoBehaviour
     {
         if (projectilePrefab == null || player == null) return;
 
+        // คำนวณทิศทางไป Player โดยตรง (ไม่พึ่ง transform.forward)
+        Vector3 toPlayer = (player.position - transform.position).normalized;
+        toPlayer.y = 0;
+        Vector3 rightOfPlayer = Vector3.Cross(Vector3.up, toPlayer); // ทิศขวาของทิศที่ไป Player
+
         for (int i = 0; i < projectileCount; i++)
         {
             Vector3 spawnPos;
 
             if (projectileSpawnPoint != null)
             {
-                // ใช้ตำแหน่งจาก Spawn Point ที่กำหนด
                 spawnPos = projectileSpawnPoint.position;
             }
             else
             {
-                // คำนวณตำแหน่ง Spawn ขนาบข้างซ้าย-ขวาของบอส
-                Vector3 centerPos = transform.position + Vector3.up * spawnHeight;
-                Vector3 rightDir = transform.right;
+                // Spawn หน้าบอส ไปทาง Player
+                Vector3 centerPos = transform.position + Vector3.up * spawnHeight + toPlayer * 2f;
 
                 float offset = 0f;
                 if (projectileCount > 1)
@@ -301,10 +344,11 @@ public class BossAI : MonoBehaviour
                     float t = (float)i / (projectileCount - 1);
                     offset = Mathf.Lerp(-spawnSpread, spawnSpread, t);
                 }
-                spawnPos = centerPos + rightDir * offset;
+                spawnPos = centerPos + rightOfPlayer * offset;
             }
 
-            GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+            // Spawn โดยหันไปทาง Player
+            GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(toPlayer));
             BossProjectile bp = proj.GetComponent<BossProjectile>();
             if (bp != null)
             {
@@ -315,6 +359,199 @@ public class BossAI : MonoBehaviour
             }
 
             Debug.Log($"Boss: Projectile {i + 1}/{projectileCount} spawned! (Hover for {projectileHoverTime}s)");
+        }
+    }
+
+    // ========== Dash Attack: พุ่งชาร์จใส่ Player ==========
+    void PerformDashAttack()
+    {
+        lastDashTime = Time.time;
+        isUsingSkill = true;
+        Debug.Log("Boss: Dash Attack! — Charging at Player!");
+        StartCoroutine(DashAttackSequence());
+    }
+
+    IEnumerator DashAttackSequence()
+    {
+        // หยุดก่อน
+        if (agent.isOnNavMesh) agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+
+        // หันหน้าเข้าหา Player
+        FaceTargetInstant(player.position);
+        yield return null;
+
+        // === Phase 1: พุ่งไปหา Player ก่อน ===
+        Vector3 dashDir = (player.position - transform.position).normalized;
+        dashDir.y = 0;
+        Vector3 targetPos = player.position;
+
+        float dashTime = 0f;
+        float maxDashTime = 1.5f;
+        bool hitPlayer = false;
+
+        while (dashTime < maxDashTime)
+        {
+            if (isDead) { isUsingSkill = false; yield break; }
+
+            // หมุนตาม Player ตลอดตอนพุ่ง
+            FaceTarget(player.position);
+
+            float step = dashSpeed * Time.deltaTime;
+            agent.Move(dashDir * step);
+
+            // เช็คว่าถึงตัว Player หรือยัง
+            float distToPlayer = Vector3.Distance(transform.position, player.position);
+            if (distToPlayer <= dashHitRadius)
+            {
+                hitPlayer = true;
+                break;
+            }
+
+            // ถ้าพุ่งเลย target ไปแล้วก็หยุด
+            float distToTarget = Vector3.Distance(transform.position, targetPos);
+            if (distToTarget < 1f)
+            {
+                break;
+            }
+
+            dashTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // === Phase 2: ถึงตัวแล้ว → เล่น Animation ตี ===
+        FaceTargetInstant(player.position);
+        animator.SetTrigger(animAttackID);
+        Debug.Log("Boss: Dash reached target! Playing attack animation...");
+
+        // รอจังหวะดาเมจ (1.25 วิ ตรงกับ attackHitDelay)
+        yield return new WaitForSeconds(attackHitDelay);
+
+        // === Phase 3: ทำดาเมจ ===
+        if (hitPlayer && !isDead)
+        {
+            // เช็คระยะอีกทีว่า Player ยังอยู่ใกล้ไหม
+            float finalDist = Vector3.Distance(transform.position, player.position);
+            if (finalDist <= dashHitRadius + 1f)
+            {
+                HealthManager hm = player.GetComponent<HealthManager>();
+                if (hm != null)
+                {
+                    hm.TakeDamage(dashDamage);
+                    Debug.Log($"Boss: Dash Attack hit Player! Dealt {dashDamage} damage!");
+                }
+            }
+        }
+
+        // กลับสู่สถานะปกติ
+        Debug.Log("Boss: Dash Attack Complete.");
+        isUsingSkill = false;
+        if (!isDead && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
+    }
+
+    // ========== Projectile Rain: ยิงกระสุนเป็นพัด ==========
+    void PerformProjectileRain()
+    {
+        lastRainTime = Time.time;
+        isUsingSkill = true;
+        Debug.Log("Boss: Projectile Rain! — Firing fan of projectiles!");
+        StartCoroutine(ProjectileRainSequence());
+    }
+
+    IEnumerator ProjectileRainSequence()
+    {
+        // หยุดก่อน
+        if (agent.isOnNavMesh) agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+
+        // หันหน้าเข้าหา Player
+        FaceTarget(player.position);
+        yield return null;
+        FaceTarget(player.position);
+
+        // เล่น Animation Use Power
+        animator.SetTrigger(animPowerID);
+
+        // หมุนตาม Player ระหว่างรอ Animation (2.5 วินาที)
+        float rainTimer = 0f;
+        while (rainTimer < 2.5f)
+        {
+            if (isDead) { isUsingSkill = false; yield break; }
+            FaceTarget(player.position);
+            rainTimer += Time.deltaTime;
+            yield return null;
+        }
+
+        // สุ่มจำนวนรอบ 1-3 รอบ
+        int rounds = Random.Range(1, 4);
+        Debug.Log($"Boss: Projectile Rain — {rounds} rounds!");
+
+        for (int r = 0; r < rounds; r++)
+        {
+            if (isDead) break;
+
+            FaceTargetInstant(player.position);
+            SpawnRainProjectiles();
+
+            // รอระหว่างรอบ (ถ้ายังไม่ใช่รอบสุดท้าย)
+            if (r < rounds - 1)
+            {
+                yield return new WaitForSeconds(0.8f);
+            }
+        }
+
+        // รอกระสุนบินไป
+        yield return new WaitForSeconds(1.5f);
+
+        // กลับสู่ปกติ
+        Debug.Log("Boss: Projectile Rain Complete.");
+        isUsingSkill = false;
+        if (!isDead && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
+    }
+
+    void SpawnRainProjectiles()
+    {
+        if (projectilePrefab == null || player == null) return;
+
+        // คำนวณทิศทางกลาง (ตรงไปหา Player)
+        Vector3 centerDir = (player.position - transform.position).normalized;
+        centerDir.y = 0;
+
+        float halfSpread = rainSpreadAngle / 2f;
+
+        for (int i = 0; i < rainProjectileCount; i++)
+        {
+            // คำนวณมุมของลูกนี้
+            float angle = 0f;
+            if (rainProjectileCount > 1)
+            {
+                float t = (float)i / (rainProjectileCount - 1);
+                angle = Mathf.Lerp(-halfSpread, halfSpread, t);
+            }
+
+            // หมุนทิศทางตามมุม
+            Vector3 dir = Quaternion.Euler(0, angle, 0) * centerDir;
+
+            // ตำแหน่ง Spawn หน้าบอส
+            Vector3 spawnPos = transform.position + Vector3.up * spawnHeight + dir * 1.5f;
+
+            GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dir));
+            BossProjectile bp = proj.GetComponent<BossProjectile>();
+            if (bp != null)
+            {
+                bp.speed = rainProjectileSpeed;
+                bp.damage = rainDamage;
+                bp.hoverDuration = 0f; // ไม่ต้อง hover — ยิงตรงไปเลย
+                bp.target = null;      // ไม่ต้อง track Player — ยิงตรงตามทิศ
+            }
+
+            Debug.Log($"Boss: Rain Projectile {i + 1}/{rainProjectileCount} fired! (angle: {angle:F1}°)");
         }
     }
 
@@ -342,6 +579,17 @@ public class BossAI : MonoBehaviour
         {
             Quaternion lookRotation = Quaternion.LookRotation(direction);
             transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
+        }
+    }
+
+    // หันหน้าเข้าหาเป้าหมายทันที (ไม่ Slerp — snap เลย)
+    void FaceTargetInstant(Vector3 target)
+    {
+        Vector3 direction = (target - transform.position).normalized;
+        direction.y = 0;
+        if (direction != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(direction);
         }
     }
 
@@ -413,5 +661,11 @@ public class BossAI : MonoBehaviour
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, skillRange);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, dashRange);
+
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, rainRange);
     }
 }

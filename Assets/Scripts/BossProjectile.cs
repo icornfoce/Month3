@@ -39,6 +39,26 @@ public class BossProjectile : MonoBehaviour
 
     IEnumerator HoverThenLaunch()
     {
+        // === ถ้า hoverDuration <= 0 → ยิงทันทีไม่ต้อง hover ===
+        if (hoverDuration <= 0f)
+        {
+            // ยิงตรงไปตามทิศทางที่หันอยู่ (ไม่ track Player)
+            if (target != null)
+            {
+                Vector3 targetPoint = target.position + Vector3.up * 1.0f;
+                launchDirection = (targetPoint - transform.position).normalized;
+            }
+            else
+            {
+                launchDirection = transform.forward;
+            }
+
+            isLaunched = true;
+            Debug.Log("BossProjectile: Instant Launch!");
+            Destroy(gameObject, lifetimeAfterLaunch);
+            yield break;
+        }
+
         // === ลอยอยู่กับที่ ===
         yield return new WaitForSeconds(hoverDuration);
 
@@ -70,10 +90,14 @@ public class BossProjectile : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        // ไม่ชนตัวเอง/บอส
+        if (other.CompareTag("Boss")) return;
+
         // ชน Player → ทำดาเมจ → ทำลายตัวเอง
         if (other.CompareTag("Player"))
         {
             HealthManager hm = other.GetComponent<HealthManager>();
+            if (hm == null) hm = other.GetComponentInParent<HealthManager>();
             if (hm != null)
             {
                 hm.TakeDamage(damage);
@@ -85,9 +109,25 @@ public class BossProjectile : MonoBehaviour
         }
 
         // ชนพื้น/กำแพง → ทำลายตัวเอง
-        if (!other.CompareTag("Player") && !other.CompareTag("Boss"))
+        Destroy(gameObject);
+    }
+
+    // Fallback: ถ้า Collider ไม่ได้เป็น Trigger
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision.collider.CompareTag("Boss")) return;
+
+        if (collision.collider.CompareTag("Player"))
         {
-            Destroy(gameObject);
+            HealthManager hm = collision.collider.GetComponent<HealthManager>();
+            if (hm == null) hm = collision.collider.GetComponentInParent<HealthManager>();
+            if (hm != null)
+            {
+                hm.TakeDamage(damage);
+                Debug.Log($"BossProjectile: Hit Player (Collision)! Dealt {damage} damage.");
+            }
         }
+
+        Destroy(gameObject);
     }
 }
