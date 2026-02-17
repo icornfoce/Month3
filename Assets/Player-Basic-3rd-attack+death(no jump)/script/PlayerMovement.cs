@@ -15,7 +15,11 @@ public class PlayerMovement : MonoBehaviour
     public float dodgeLockoutDuration = 0.5f;
     public float iframeDuration = 0.5f;
     private bool canDodge = true;
-    private bool isInvincible = false;
+    [Header("Invincibility")]
+    // ถ้าเปิดเป็น true จะเป็นอมตะ (ไม่เสียเลือด)
+    public bool isImmortal = false;
+    // แสดงสถานะ iframe ปัจจุบัน (อ่านได้จากสคริปต์อื่น)
+    public bool IsInvincible { get; private set; } = false;
     [HideInInspector] public bool isDodgeLockingMovement = false;
 
     private Rigidbody rb;
@@ -129,7 +133,7 @@ public class PlayerMovement : MonoBehaviour
     IEnumerator PerformDodgeRootMotion()
     {
         canDodge = false;
-        isInvincible = true;
+        IsInvincible = true;
 
         // หันหน้าไปทิศที่จะหลบก่อนเริ่มพุ่ง
         if (movementInput.magnitude > 0.1f)
@@ -143,7 +147,7 @@ public class PlayerMovement : MonoBehaviour
         anim.SetTrigger("isDodging");
 
         yield return new WaitForSeconds(iframeDuration);
-        isInvincible = false;
+        IsInvincible = false;
 
         // รอจนพ้นระยะเวลา Lockout ที่ตั้งไว้ใน Inspector
         // คำนวณเวลาที่เหลือหลังจากผ่านช่วง iframe ไปแล้ว

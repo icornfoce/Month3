@@ -38,6 +38,16 @@ public class PlayerHealth : MonoBehaviour
     {
         if (isDead) return;
 
+        // Respect player invincibility / immortality
+        if (movement != null)
+        {
+            if (movement.isImmortal || movement.IsInvincible)
+            {
+                Debug.Log("Damage ignored: player is invincible/immortal.");
+                return;
+            }
+        }
+
         currentHealth -= amount;
         Debug.Log($"Player HP: {currentHealth}/{maxHealth}");
 
