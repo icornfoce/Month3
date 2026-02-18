@@ -6,43 +6,51 @@ using System.Collections;
 [RequireComponent(typeof(Animator))]
 public class BossAI : MonoBehaviour
 {
+    [Header("Global Settings (ปรับความเร็วรวม)")]
+    [Range(0.1f, 2.0f)]
+    public float globalSpeedMultiplier = 1.0f; // ตัวคูณความเร็วทุกอย่าง (ลดเหลือ 0.5 คือช้าลงครึ่งนึง)
+
     [Header("Boss Settings (ตั้งค่าบอส)")]
-    public float moveSpeed = 3.5f;          // ความเร็วเดิน
-    public float attackRange = 2.0f;        // ระยะโจมตีปกติ
-    public float powerRange = 6.0f;         // ระยะใช้ท่าพิเศษ (Power)
-    public float attackCooldown = 1.5f;     // เวลาหน่วงการโจมตี (วินาที)
-    public float powerCooldown = 10.0f;     // เวลาหน่วงท่าพิเศษ (วินาที)
-
-    [Header("Skill Settings (ตั้งค่าสกิล)")]
-    public float skillCooldown = 15.0f;     // เวลาหน่วงสกิล (วินาที)
-    public float skillDamage = 25f;         // ดาเมจต่อลูกกระสุน
-    public float skillBackupSpeed = 12f;    // ความเร็วถอยหลัง
-    public float skillBackupDistance = 6f;  // ระยะถอยหลัง
-    public float skillRange = 10f;          // ระยะที่จะเริ่มใช้สกิล
-    public float projectileSpeed = 14f;     // ความเร็วกระสุน
-    public float skillAnimDelay = 0.5f;     // เวลารอก่อนสร้างกระสุน
-    public float projectileHoverTime = 5f;  // เวลาที่กระสุนลอยอยู่ก่อนพุ่ง
-    public int projectileCount = 2;         // จำนวนกระสุนที่สร้าง
-    public float spawnSpread = 2f;          // ระยะห่างระหว่างกระสุนแต่ละลูก (เมตร)
-    public float spawnHeight = 1.5f;        // ความสูงของจุดสร้างกระสุน
-    public GameObject projectilePrefab;     // ลาก Prefab กระสุนใส่ตรงนี้
-    public Transform projectileSpawnPoint;  // (Optional) จุดที่อยากให้กระสุนเกิด
-
-    [Header("Dash Attack Settings (พุ่งชาร์จ)")]
-    public float dashCooldown = 10f;        // คูลดาวน์ Dash (วินาที)
-    public float dashSpeed = 20f;           // ความเร็วตอนพุ่ง
-    public float dashDamage = 35f;          // ดาเมจตอนพุ่งชน
-    public float dashRange = 12f;           // ระยะที่จะเริ่มใช้ Dash
-    public float dashMinRange = 5f;         // ระยะขั้นต่ำ (ไม่ Dash ถ้าอยู่ใกล้เกิน)
-    public float dashHitRadius = 2f;        // รัศมีที่ถือว่าชน Player
+    public float moveSpeed = 1.5f;          // เดินช้ามาก (เต่ากัดยาง)
+    public float attackRange = 2.0f;        
+    public float powerRange = 6.0f;         
+    public float attackCooldown = 4.0f;     // ตีเสร็จพัก 4 วิ
+    public float powerCooldown = 12.0f;     
 
     [Header("Projectile Rain Settings (ฝนกระสุน)")]
-    public float rainCooldown = 20f;        // คูลดาวน์ฝนกระสุน (วินาที)
-    public int rainProjectileCount = 5;     // จำนวนกระสุนต่อรอบ
-    public float rainSpreadAngle = 60f;     // มุมกระจายของพัด (องศา)
-    public float rainProjectileSpeed = 18f; // ความเร็วกระสุน Rain
+    public float rainCooldown = 20f;        
+    public int rainProjectileCount = 5;     
+    public float rainSpreadAngle = 60f;     
+    public float rainProjectileSpeed = 10f; // ลดจาก 18 (กระสุนช้าลง)
     public float rainDamage = 15f;          // ดาเมจต่อลูก
     public float rainRange = 14f;           // ระยะที่จะเริ่มใช้ Rain
+    public float spawnHeight = 1.5f;        // ความสูงของจุดสร้างกระสุน
+    public GameObject projectilePrefab;     // ลาก Prefab กระสุนใส่ตรงนี้
+    public Transform rainSpawnPoint;        // (Optional) จุดที่กระสุนจะออก — ลาก Transform ใส่
+
+    [Header("Dash Attack Settings (พุ่งชาร์จ)")]
+    public float dashCooldown = 15f;        
+    public float dashSpeed = 8f;            // พุ่งช้าลงอีก
+    public float dashDamage = 35f;          
+    public float dashRange = 12f;           
+    public float dashMinRange = 5f;         
+    public float dashHitRadius = 2f;        
+
+    [Header("Homing Projectile Settings (กระสุนติดตาม)")]
+    public float homingCooldown = 15f;      
+    public int homingCount = 3;             
+    public float homingSpeed = 3.5f;        // บินช้าเต่ากัด
+    public float homingTurnSpeed = 0.5f;    // เลี้ยวแทบไม่ไป (หลบง่ายสุดๆ)
+    public float homingDuration = 8f;       
+
+    public float homingRange = 15f;         
+
+    [Header("Burst Skill Settings (ระเบิดรอบทิศ)")]
+    public float burstCooldown = 25f;       
+    public int burstCount = 12;             
+    public float burstSpeed = 5f;          // ระเบิดช้าลงอีก
+    public float burstDamage = 20f;         // ดาเมจ
+    public float burstRange = 8f;           // ระยะเริ่มใช้ (ใกล้-กลาง)
 
     [Header("Damage Settings (ค่าดาเมจ)")]
     public float attackDamage = 15f;        // ดาเมจท่าปกติ
@@ -54,8 +62,22 @@ public class BossAI : MonoBehaviour
 
     [Header("Health Settings (ค่าพลังชีวิตบอส)")]
     public float maxHealth = 200f;
+    [Header("Death Settings (การตาย)")]
+    public GameObject deathEffectPrefab;     // Prefab ระเบิด/ควันตอนตาย
+    public float destroyDelay = 5.0f;        // เวลาที่จะทำลายซากทิ้ง (0 = ไม่ทำลาย)
+
+    [Header("Audio Settings (เสียง)")]
+    public AudioClip attackSound;   // เสียงโจมตีปกติ
+    public AudioClip powerSound;    // เสียงท่าพิเศษ (รวมๆ)
+    public AudioClip dashSound;     // เสียง Dash
+    public AudioClip rainSound;     // เสียง Rain Proj
+    public AudioClip homingSound;   // เสียง Homing
+    public AudioClip burstSound;    // เสียง Burst
+    public AudioClip hitSound;      // เสียงโดนตี/Parry
+    public AudioClip deathSound;    // เสียงตาย
     public float currentHealth;
     public bool isDead = false;
+    private bool hasDied = false; // ตัวเช็คว่าตายจริงหรือยัง (กันซ้ำ)
     
     [Header("Jump Settings (ตั้งค่ากระโดด)")]
     public float jumpForce = 5.0f;          // แรงกระโดด
@@ -68,14 +90,19 @@ public class BossAI : MonoBehaviour
     private Animator animator;
     private Transform player;
     
+    [Header("Stun Settings (Parry)")]
+    public float stunDuration = 3.0f;       // ระยะเวลาติดสตั้น
+    public bool isStunned = false;
+    private Coroutine currentSkillCoroutine;
+    
     // สถานะภายใน (Internal State)
     private float lastAttackTime;
     private float lastPowerTime;
-    private float lastSkillTime;
     private float lastDashTime;
     private float lastRainTime;
+    private float lastHomingTime;
+    private float lastBurstTime;
     private bool isAttacking = false;
-    private bool isUsingPower = false;
     private bool isUsingSkill = false;      // กำลังใช้สกิลอยู่
     private bool lastAttackWasPower = false; // เก็บว่าท่าล่าสุดเป็น Power ไหม
     
@@ -87,10 +114,8 @@ public class BossAI : MonoBehaviour
     private int animIsJumpingID;
     private int animHitID;
     private int animDeathID;
-    private int animSkillID;
 
-    [Header("Audio Settings")]
-    public AudioClip skillSound;            // เสียงตอนใช้สกิล
+
     private AudioSource audioSource;
 
     void Start()
@@ -103,11 +128,26 @@ public class BossAI : MonoBehaviour
         // ถ้าไม่มี AudioSource ให้ใส่ให้
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
+        // Auto-find RainSpawnPoint ถ้ายังไม่ได้ใส่
+        if (rainSpawnPoint == null)
+        {
+            Transform[] allChildren = GetComponentsInChildren<Transform>();
+            foreach (Transform child in allChildren)
+            {
+                if (child.name == "RainSpawnPoint")
+                {
+                    rainSpawnPoint = child;
+                    Debug.Log($"Boss: Auto-found RainSpawnPoint at {child.position}");
+                    break;
+                }
+            }
+        }
+
         // ถ้าไม่มี NavMeshAgent ให้ใส่ให้ (กัน error)
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
 
         // 2. ตั้งค่า NavMeshAgent
-        agent.speed = moveSpeed;
+        agent.speed = moveSpeed * globalSpeedMultiplier; // Apply multiplier
         agent.stoppingDistance = attackRange - 0.5f;
 
         // 3. ตั้งค่า HP
@@ -133,18 +173,26 @@ public class BossAI : MonoBehaviour
         animIsJumpingID = Animator.StringToHash("IsJumping");
         animHitID = Animator.StringToHash("Hit");
         animDeathID = Animator.StringToHash("Death");
-        animSkillID = Animator.StringToHash("Skill");
     }
 
     void Update()
     {
-        if (player == null || isDead) return;
+        if (player == null) return;
+        
+        // ถ้าติ๊ก isDead ใน Inspector แต่ยังไม่ตายจริง -> สั่งตายเลย
+        if (isDead && !hasDied)
+        {
+            Die();
+            return;
+        }
+
+        if (hasDied || isStunned) return; // ถ้าตายแล้วหรือมึนอยู่ ไม่ต้องทำอะไร
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
         // เช็คว่ากำลังเล่น Animation โจมตีอยู่ไหม
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-        isAttacking = stateInfo.IsName("attack") || stateInfo.IsName("Use power") || stateInfo.IsTag("Skill"); 
+        isAttacking = stateInfo.IsName("attack") || stateInfo.IsName("Use power"); 
 
         if (isAttacking || isUsingSkill)
         {
@@ -179,21 +227,28 @@ public class BossAI : MonoBehaviour
             return;
         }
 
-        // 2. สกิล (Skill) — ถอยหลังแล้วยิง Projectile
-        if (distance <= skillRange && Time.time >= lastSkillTime + skillCooldown && projectilePrefab != null)
-        {
-            PerformSkill();
-            return;
-        }
-
-        // 3. พุ่งชาร์จ (Dash Attack) — ระยะกลาง
+        // 2. พุ่งชาร์จ (Dash Attack) — ระยะกลาง
         if (distance <= dashRange && distance >= dashMinRange && Time.time >= lastDashTime + dashCooldown)
         {
             PerformDashAttack();
             return;
         }
 
-        // 4. ท่าพิเศษ (Use Power)
+        // 3. กระสุนติดตาม (Homing) — ระยะไกล/กลาง (กวน Player)
+        if (distance <= homingRange && Time.time >= lastHomingTime + homingCooldown && projectilePrefab != null)
+        {
+            PerformHomingSkill();
+            return;
+        }
+
+        // 4. ระเบิดรอบทิศ (Burst) — ระยะใกล้-กลาง (ไล่ Player)
+        if (distance <= burstRange && Time.time >= lastBurstTime + burstCooldown && projectilePrefab != null)
+        {
+            PerformBurstSkill();
+            return;
+        }
+
+        // 5. ท่าพิเศษ (Use Power) (เปลี่ยนเป็นลำดับท้ายๆ หรือเอาไว้ใช้ท่าอื่นแทนได้)
         if (distance <= powerRange && distance > attackRange && Time.time >= lastPowerTime + powerCooldown)
         {
              PerformUsePower();
@@ -215,6 +270,7 @@ public class BossAI : MonoBehaviour
         lastAttackWasPower = false;
         
         Debug.Log("Boss: Attack Start!");
+        PlaySound(attackSound); // เล่นเสียงโจมตี
         StartCoroutine(DelayDealDamage(attackHitDelay));
     }
 
@@ -225,142 +281,10 @@ public class BossAI : MonoBehaviour
         lastAttackWasPower = true;
         
         Debug.Log("Boss: Use Power Start!");
+        PlaySound(powerSound); // เล่นเสียง Power
         StartCoroutine(DelayDealDamage(powerHitDelay));
     }
 
-    // ========== สกิล: ถอยหลัง → เล่น Animation → ยิง Projectile ==========
-    void PerformSkill()
-    {
-        lastSkillTime = Time.time;
-        isUsingSkill = true;
-        Debug.Log("Boss: Skill Start! — Backing up...");
-        StartCoroutine(SkillSequence());
-    }
-
-    IEnumerator SkillSequence()
-    {
-        // หยุดเดินก่อน
-        if (agent.isOnNavMesh) agent.isStopped = true;
-        agent.velocity = Vector3.zero;
-
-        // Force Idle — บังคับให้เล่น Idle ทันที ไม่ให้มี Animation ใดๆ ค้างอยู่
-        animator.SetFloat(animSpeedID, 0f);
-        animator.ResetTrigger(animAttackID);
-        animator.ResetTrigger(animPowerID);
-        animator.ResetTrigger(animSkillID);
-        animator.ResetTrigger(animHitID);
-        animator.Play("Idle", 0, 0f); // บังคับเล่น Idle state โดยตรง
-
-        // รอ 1 เฟรมให้ Animator ประมวลผลการ Reset ให้เสร็จก่อน
-        yield return null;
-
-        // ถอยหลังจาก Player
-        FaceTarget(player.position);
-        Vector3 backupDir = (transform.position - player.position).normalized;
-        backupDir.y = 0;
-
-        float currentDist = 0f;
-
-        while (currentDist < skillBackupDistance)
-        {
-            if (isDead) { isUsingSkill = false; yield break; }
-
-            FaceTarget(player.position);
-            float step = skillBackupSpeed * Time.deltaTime;
-            agent.Move(backupDir * step);
-            currentDist += step;
-            yield return null;
-        }
-
-        Debug.Log("Boss: Backup Complete. Playing Animation...");
-
-        // เล่น Animation "Use power" หลังถอยเสร็จ
-        animator.SetTrigger(animPowerID);
-
-        // หันเข้าหา Player แล้วเล่น Skill Animation
-        FaceTarget(player.position);
-        animator.SetTrigger(animSkillID);
-
-        if (skillSound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(skillSound);
-        }
-
-        // หมุนตาม Player ระหว่างรอ Animation (2.5 วินาที)
-        float skillTimer = 0f;
-        while (skillTimer < 2.5f)
-        {
-            if (isDead) { isUsingSkill = false; yield break; }
-            FaceTarget(player.position);
-            skillTimer += Time.deltaTime;
-            yield return null;
-        }
-
-        // ยิง Projectile
-        if (!isDead)
-        {
-            FaceTargetInstant(player.position); // หันหน้าเข้าหา Player ทันทีก่อนยิง
-            Debug.Log("Boss: Spawning Projectiles...");
-            SpawnProjectiles();
-        }
-
-        // รอจนกว่า Projectile จะพุ่งไป (hover time)
-        yield return new WaitForSeconds(projectileHoverTime);
-
-        // กลับสู่สถานะปกติ
-        Debug.Log("Boss: Skill Complete. Resuming Action.");
-        isUsingSkill = false;
-        if (!isDead && agent.isOnNavMesh)
-        {
-            agent.isStopped = false;
-        }
-    }
-
-    void SpawnProjectiles()
-    {
-        if (projectilePrefab == null || player == null) return;
-
-        // คำนวณทิศทางไป Player โดยตรง (ไม่พึ่ง transform.forward)
-        Vector3 toPlayer = (player.position - transform.position).normalized;
-        toPlayer.y = 0;
-        Vector3 rightOfPlayer = Vector3.Cross(Vector3.up, toPlayer); // ทิศขวาของทิศที่ไป Player
-
-        for (int i = 0; i < projectileCount; i++)
-        {
-            Vector3 spawnPos;
-
-            if (projectileSpawnPoint != null)
-            {
-                spawnPos = projectileSpawnPoint.position;
-            }
-            else
-            {
-                // Spawn หน้าบอส ไปทาง Player
-                Vector3 centerPos = transform.position + Vector3.up * spawnHeight + toPlayer * 2f;
-
-                float offset = 0f;
-                if (projectileCount > 1)
-                {
-                    float t = (float)i / (projectileCount - 1);
-                    offset = Mathf.Lerp(-spawnSpread, spawnSpread, t);
-                }
-                spawnPos = centerPos + rightOfPlayer * offset;
-            }
-
-            // Spawn โดยหันไปทาง Player
-            GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(toPlayer));
-            BossProjectile bp = proj.GetComponent<BossProjectile>();
-            if (bp != null)
-            {
-                bp.speed = projectileSpeed;
-                bp.damage = skillDamage;
-                bp.hoverDuration = projectileHoverTime;
-                bp.target = player;
-            }
-
-            Debug.Log($"Boss: Projectile {i + 1}/{projectileCount} spawned! (Hover for {projectileHoverTime}s)");
-        }
-    }
 
     // ========== Dash Attack: พุ่งชาร์จใส่ Player ==========
     void PerformDashAttack()
@@ -368,7 +292,8 @@ public class BossAI : MonoBehaviour
         lastDashTime = Time.time;
         isUsingSkill = true;
         Debug.Log("Boss: Dash Attack! — Charging at Player!");
-        StartCoroutine(DashAttackSequence());
+        PlaySound(dashSound); // เล่นเสียง Dash
+        currentSkillCoroutine = StartCoroutine(DashAttackSequence());
     }
 
     IEnumerator DashAttackSequence()
@@ -397,7 +322,7 @@ public class BossAI : MonoBehaviour
             // หมุนตาม Player ตลอดตอนพุ่ง
             FaceTarget(player.position);
 
-            float step = dashSpeed * Time.deltaTime;
+            float step = dashSpeed * globalSpeedMultiplier * Time.deltaTime; // Apply multiplier
             agent.Move(dashDir * step);
 
             // เช็คว่าถึงตัว Player หรือยัง
@@ -444,7 +369,8 @@ public class BossAI : MonoBehaviour
         }
 
         // กลับสู่สถานะปกติ
-        Debug.Log("Boss: Dash Attack Complete.");
+        Debug.Log("Boss: Dash Attack Complete. Recovering...");
+        yield return new WaitForSeconds(1.5f); // **เพิ่มช่องว่างให้ผู้เล่นตีสวน**
         isUsingSkill = false;
         if (!isDead && agent.isOnNavMesh)
         {
@@ -458,7 +384,8 @@ public class BossAI : MonoBehaviour
         lastRainTime = Time.time;
         isUsingSkill = true;
         Debug.Log("Boss: Projectile Rain! — Firing fan of projectiles!");
-        StartCoroutine(ProjectileRainSequence());
+        PlaySound(rainSound); // เล่นเสียง Rain
+        currentSkillCoroutine = StartCoroutine(ProjectileRainSequence());
     }
 
     IEnumerator ProjectileRainSequence()
@@ -507,7 +434,8 @@ public class BossAI : MonoBehaviour
         yield return new WaitForSeconds(1.5f);
 
         // กลับสู่ปกติ
-        Debug.Log("Boss: Projectile Rain Complete.");
+        Debug.Log("Boss: Projectile Rain Complete. Recovering...");
+        yield return new WaitForSeconds(1.2f); // **เพิ่มช่องว่างให้ผู้เล่นตีสวน**
         isUsingSkill = false;
         if (!isDead && agent.isOnNavMesh)
         {
@@ -519,9 +447,24 @@ public class BossAI : MonoBehaviour
     {
         if (projectilePrefab == null || player == null) return;
 
-        // คำนวณทิศทางกลาง (ตรงไปหา Player)
-        Vector3 centerDir = (player.position - transform.position).normalized;
-        centerDir.y = 0;
+        // จุดเริ่มต้น — ใช้ rainSpawnPoint ถ้ามี ไม่งั้นใช้หน้าบอส
+        Vector3 origin;
+        if (rainSpawnPoint != null)
+        {
+            origin = rainSpawnPoint.position;
+        }
+        else
+        {
+            origin = transform.position + Vector3.up * spawnHeight;
+        }
+
+        Debug.Log($"Boss: SpawnRainProjectiles from origin={origin}, rainSpawnPoint={(rainSpawnPoint != null ? rainSpawnPoint.name : "NULL")}");
+
+        // คำนวณทิศทางกลาง (จาก origin ไปหา Player)
+        Vector3 toPlayer = player.position - origin;
+        toPlayer.y = 0;
+        Vector3 centerDir = toPlayer.normalized;
+        if (centerDir.sqrMagnitude < 0.01f) centerDir = transform.forward;
 
         float halfSpread = rainSpreadAngle / 2f;
 
@@ -537,23 +480,186 @@ public class BossAI : MonoBehaviour
 
             // หมุนทิศทางตามมุม
             Vector3 dir = Quaternion.Euler(0, angle, 0) * centerDir;
+            if (dir.sqrMagnitude < 0.01f) dir = transform.forward;
 
-            // ตำแหน่ง Spawn หน้าบอส
-            Vector3 spawnPos = transform.position + Vector3.up * spawnHeight + dir * 1.5f;
-
-            GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dir));
+            // Spawn ตรงจุด origin
+            GameObject proj = Instantiate(projectilePrefab, origin, Quaternion.LookRotation(dir));
             BossProjectile bp = proj.GetComponent<BossProjectile>();
             if (bp != null)
             {
-                bp.speed = rainProjectileSpeed;
+                bp.speed = rainProjectileSpeed * globalSpeedMultiplier; // Apply multiplier
                 bp.damage = rainDamage;
-                bp.hoverDuration = 0f; // ไม่ต้อง hover — ยิงตรงไปเลย
-                bp.target = null;      // ไม่ต้อง track Player — ยิงตรงตามทิศ
+                bp.hoverDuration = 0f;
+                bp.target = null;
+                bp.Initialize();
+            }
+            else
+            {
+                Debug.LogError("Boss: ERROR! Rain Projectile Prefab ไม่มี BossProjectile script!");
             }
 
-            Debug.Log($"Boss: Rain Projectile {i + 1}/{rainProjectileCount} fired! (angle: {angle:F1}°)");
+            Debug.Log($"Boss: Rain Projectile {i + 1}/{rainProjectileCount} fired from {origin} (angle: {angle:F1}°)");
         }
     }
+
+    // ========== Homing Skill (กระสุนติดตาม) ==========
+    void PerformHomingSkill()
+    {
+        lastHomingTime = Time.time;
+        isUsingSkill = true;
+        Debug.Log("Boss: Homing Skill Start!");
+        PlaySound(homingSound); // เล่นเสียง Homing
+        currentSkillCoroutine = StartCoroutine(HomingSequence());
+    }
+
+    IEnumerator HomingSequence()
+    {
+        if (agent.isOnNavMesh) agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+
+        // หันหา Player
+        FaceTarget(player.position);
+        yield return null;
+
+        // เล่นท่าเดียวกับ Rain (Use Power)
+        animator.SetTrigger(animPowerID);
+
+        // รอ Animation
+        float waitTimer = 0f;
+        while (waitTimer < 1.0f)
+        {
+            if (isDead) { isUsingSkill = false; yield break; }
+            FaceTarget(player.position);
+            waitTimer += Time.deltaTime;
+            yield return null;
+        }
+
+        // ยิงกระสุนทีละลูก (ยิง 3 ลูกเว้นช่วงนิดหน่อย)
+        for (int i = 0; i < homingCount; i++)
+        {
+            if (isDead) break;
+            FaceTargetInstant(player.position);
+            SpawnHomingProjectile();
+            yield return new WaitForSeconds(0.5f); // ยิงรัวๆ เว้น 0.5 วิ
+        }
+
+        yield return new WaitForSeconds(1.0f);
+
+        Debug.Log("Boss: Homing Skill Complete. Recovering...");
+        yield return new WaitForSeconds(1.5f); // **เพิ่มช่องว่างให้ผู้เล่นตีสวน**
+
+        isUsingSkill = false;
+        if (!isDead && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
+    }
+
+    void SpawnHomingProjectile()
+    {
+        if (projectilePrefab == null || player == null) return;
+
+        // จุดยิง: ใช้ RainSpawnPoint หรือหน้าบอส
+        Vector3 origin = (rainSpawnPoint != null) ? rainSpawnPoint.position : (transform.position + Vector3.up * spawnHeight);
+        Vector3 dir = (player.position - origin).normalized;
+        if (dir == Vector3.zero) dir = transform.forward;
+
+        GameObject proj = Instantiate(projectilePrefab, origin, Quaternion.LookRotation(dir));
+        BossProjectile bp = proj.GetComponent<BossProjectile>();
+
+        if (bp != null)
+        {
+            bp.speed = homingSpeed * globalSpeedMultiplier;       // Apply multiplier
+            bp.damage = rainDamage;       // ดาเมจ (ใช้ค่าเดียวกับ Rain หรือแยกก็ได้)
+            bp.hoverDuration = 0f;        // ไม่ต้อง Hover
+            bp.target = player;           // **ส่งเป้าหมายให้มันตาม**
+            
+            // เปิดโหมดติดตาม!
+            bp.isHoming = true;
+            bp.turnSpeed = homingTurnSpeed;
+            bp.lifetimeAfterLaunch = homingDuration; // อยู่นานตามที่ตั้ง
+
+            bp.Initialize();
+        }
+
+        Debug.Log("Boss: Fired Homing Projectile!");
+    }
+
+
+
+    // ========== Burst Skill (ระเบิดรอบทิศ) ==========
+    void PerformBurstSkill()
+    {
+        lastBurstTime = Time.time;
+        isUsingSkill = true;
+        Debug.Log("Boss: Burst Skill Start!");
+        PlaySound(burstSound); // เล่นเสียง Burst
+        currentSkillCoroutine = StartCoroutine(BurstSequence());
+    }
+
+    IEnumerator BurstSequence()
+    {
+        if (agent.isOnNavMesh) agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+
+        // หันหน้าหา Player ก่อนชาร์จ
+        FaceTarget(player.position);
+        
+        // เล่น Animation
+        animator.SetTrigger(animPowerID);
+
+        // รอจังหวะชาร์จ (1.5 วินาที)
+        float chargeTime = 1.5f;
+        float t = 0;
+        while (t < chargeTime)
+        {
+             if (isDead) { isUsingSkill = false; yield break; }
+             // FaceTarget(player.position); // จะให้หมุนตาม หรือยืนนิ่งๆ ก้ได้ (ยืนนิ่งเท่กว่าตอนระเบิด)
+             t += Time.deltaTime;
+             yield return null;
+        }
+
+        if (projectilePrefab != null)
+        {
+            // คำนวณจุดปล่อย (รอบตัว)
+            Vector3 center = transform.position + Vector3.up * spawnHeight;
+            if (rainSpawnPoint != null) center = rainSpawnPoint.position;
+
+            float angleStep = 360f / burstCount;
+            
+            for (int i = 0; i < burstCount; i++)
+            {
+                float angle = i * angleStep;
+                // หมุนทิศทางรอบแกน Y
+                Quaternion rot = Quaternion.Euler(0, angle, 0);
+                Vector3 dir = rot * transform.forward; // อิงจากหน้าบอส (หรือ Vector3.forward ก็ได้ เพราะครบวงกลมอยู่ดี)
+
+                GameObject proj = Instantiate(projectilePrefab, center, Quaternion.LookRotation(dir));
+                BossProjectile bp = proj.GetComponent<BossProjectile>();
+                if (bp != null)
+                {
+                    bp.speed = burstSpeed * globalSpeedMultiplier; // Apply multiplier
+                    bp.damage = burstDamage;
+                    bp.hoverDuration = 0f; // ยิงเลย
+                    bp.target = null;      // ไม่ติดตาม
+                    bp.isHoming = false;   // ยิงตรงๆ
+                    bp.lifetimeAfterLaunch = 5f;
+                    bp.Initialize();
+                }
+            }
+            Debug.Log("Boss: BOOM! Burst Fired.");
+        }
+
+        yield return new WaitForSeconds(1.0f); // ค้างท่านิดนึง
+
+        Debug.Log("Boss: Burst Skill Complete. Recovering...");
+        yield return new WaitForSeconds(2.0f); // **เพิ่มช่องว่างยาวหน่อยเพราะท่าใหญ่**
+
+        isUsingSkill = false;
+        if (!isDead && agent.isOnNavMesh) agent.isStopped = false;
+    }
+
+
 
     IEnumerator DelayDealDamage(float delay)
     {
@@ -593,6 +699,54 @@ public class BossAI : MonoBehaviour
         }
     }
 
+    // ========== ฟังก์ชันรับ Parrry (เรียกจาก Script อื่น) ==========
+    public void OnParried()
+    {
+        if (isDead) return;
+
+        Debug.Log("Boss: PARRIED! Stunned!");
+        PlaySound(hitSound); // เล่นเสียงโดน Parry
+
+        // 1. หยุดทุกอย่างและการเคลื่อนไหว
+        isStunned = true;
+        isUsingSkill = false;
+        isAttacking = false;
+        
+        // หยุด Coroutine สกิลที่กำลังรันอยู่ (ถ้ามี)
+        if (currentSkillCoroutine != null) 
+        {
+            StopCoroutine(currentSkillCoroutine);
+            currentSkillCoroutine = null;
+        }
+
+        // หยุดเดิน
+        if (agent.isOnNavMesh) 
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+        }
+
+        // 2. เล่น Animation เจ็บ/ชะงัก (ใช้ Hit ไปก่อน)
+        animator.SetTrigger(animHitID);
+
+        // 3. เริ่มนับเวลาหาย Stun
+        StartCoroutine(StunRoutine());
+    }
+
+    IEnumerator StunRoutine()
+    {
+        yield return new WaitForSeconds(stunDuration);
+        
+        isStunned = false;
+        Debug.Log("Boss: Recovered from Stun.");
+
+        // กลับมาเดินต่อถ้ายังไม่ตาย
+        if (!isDead && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
+    }
+
     // ========== ฟังก์ชันรับดาเมจ (เรียกจาก PlayerAttack) ==========
     public void TakeDamage(float amount)
     {
@@ -603,6 +757,7 @@ public class BossAI : MonoBehaviour
 
         // เล่น Animation โดนตี
         animator.SetTrigger(animHitID);
+        PlaySound(hitSound); // เล่นเสียงโดนตี
 
         if (currentHealth <= 0)
         {
@@ -612,22 +767,65 @@ public class BossAI : MonoBehaviour
 
     void Die()
     {
-        isDead = true;
+        if (hasDied) return;
+        hasDied = true;
+        isDead = true; // ย้ำให้เป็น true
         Debug.Log("Boss Died!");
 
-        // เล่น Death animation
-        animator.SetTrigger(animDeathID);
+        // 1. หยุดสกิลทั้งหมด
+        StopAllCoroutines();
 
-        // หยุด NavMeshAgent
-        if (agent.isOnNavMesh) agent.isStopped = true;
-        agent.velocity = Vector3.zero;
+        // 2. หยุด NavMeshAgent (ปิดไปเลยเพื่อความชัวร์)
+        if (agent != null)
+        {
+            if (agent.isOnNavMesh) agent.isStopped = true;
+            agent.enabled = false;
+        }
 
-        // ปิดสคริปต์
-        this.enabled = false;
-        
-        // ปิด Collider
+        // 3. ปิด Collider
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
+
+        // 4. เริ่ม Sequence
+        StartCoroutine(DeathSequence());
+    }
+
+    IEnumerator DeathSequence()
+    {
+        // 1. เล่นเสียง
+        PlaySound(deathSound);
+
+        // 2. บังคับเล่น Animation ตายทันที (Force Play)
+        if (animator != null)
+        {
+            // ล้างค่า Trigger อื่นๆ ที่อาจค้างอยู่
+            animator.ResetTrigger(animAttackID);
+            animator.ResetTrigger(animPowerID);
+            animator.ResetTrigger(animHitID);
+
+            // ใช้ CrossFade เพื่อบังคับเปลี่ยนท่าไปที่ "Death" ทันที (ขอแค่มี State ชื่อ Death)
+            animator.CrossFade("Death", 0.1f);
+            Debug.Log("Boss: Force playing 'Death' animation...");
+        }
+
+        // 3. แสดง Effect
+        if (deathEffectPrefab != null)
+        {
+            Instantiate(deathEffectPrefab, transform.position + Vector3.up * 1.0f, Quaternion.identity);
+        }
+
+        // 4. รอเวลา
+        yield return new WaitForSeconds(3.0f); // รอให้ท่าตายเล่นจบ
+
+        // 5. จัดการซาก
+        if (destroyDelay > 0)
+        {
+             Destroy(gameObject);
+        }
+        else
+        {
+             this.enabled = false;
+        }
     }
 
     // ========== ฟังก์ชันทำดาเมจใส่ Player ==========
@@ -659,13 +857,19 @@ public class BossAI : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, powerRange);
 
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, skillRange);
 
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, dashRange);
 
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, rainRange);
+    }
+
+    void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
     }
 }

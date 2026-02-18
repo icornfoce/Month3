@@ -11,9 +11,10 @@ GameObject:
   - component: {fileID: 5347785676844624201}
   - component: {fileID: -416402858764290024}
   - component: {fileID: -8094810077314176883}
-  m_Layer: 0
+  - component: {fileID: 1022499509497820477}
+  m_Layer: 7
   m_Name: Ram
-  m_TagString: Untagged
+  m_TagString: skill
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -26,14 +27,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1923750421664220717}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -3.98887, y: 0, z: -2.89674}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1.6541, y: 1.6541, z: 1.6541}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6790135577466798831}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &-416402858764290024
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -72,6 +73,33 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &1022499509497820477
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1923750421664220717}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1001 &6463176916443325700
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -82,7 +110,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 5868c57551cc40e4c96cd1411d573673, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.73472
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5868c57551cc40e4c96cd1411d573673, type: 3}
       propertyPath: m_LocalPosition.y
@@ -90,7 +118,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5868c57551cc40e4c96cd1411d573673, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.16512
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5868c57551cc40e4c96cd1411d573673, type: 3}
       propertyPath: m_LocalRotation.w
@@ -123,6 +151,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 5868c57551cc40e4c96cd1411d573673, type: 3}
       propertyPath: m_Name
       value: Ram
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 5868c57551cc40e4c96cd1411d573673, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

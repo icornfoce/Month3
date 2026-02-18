@@ -1,133 +1,190 @@
 using UnityEngine;
-using System.Collections;
 
 public class BossProjectile : MonoBehaviour
 {
     [Header("Projectile Settings")]
-    public float speed = 14f;             // ความเร็วกระสุนตอนพุ่งไป Player
-    public float damage = 25f;            // ดาเมจ
-    public float hoverDuration = 5f;      // เวลาลอยอยู่กับที่ก่อนพุ่ง (วินาที)
-    public float lifetimeAfterLaunch = 5f; // เวลาก่อน auto-destroy หลังพุ่งออก
+    public float speed = 14f;
+    public float damage = 25f;
+    public float hoverDuration = 5f;
+    public float lifetimeAfterLaunch = 5f;
 
-    [HideInInspector]
-    public Transform target;              // ตัว Player (ตั้งค่าจาก BossAI)
+    [Header("Homing Settings (สำหรับกระสุนติดตาม)")]
+    public bool isHoming = false;         // เปิดโหมดติดตามหรือไม่
+    public float turnSpeed = 5.0f;        // ความไวในการเลี้ยว (ยิ่งเยอะยิ่งเลี้ยวเก่ง)
 
-    private bool isLaunched = false;
+    [HideInInspector] public Transform target;
+
+    // สถานะภายใน
+    private enum State { WaitingInit, Hovering, Launched }
+    private State state = State.WaitingInit;
+    private float timer = 0f;
     private Vector3 launchDirection;
 
-    void Start()
+    void Awake()
     {
-        // ตั้งค่า Rigidbody อัตโนมัติ
+        // ตั้งค่า Rigidbody + Collider ทันทีตอน Instantiate
         Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            rb = gameObject.AddComponent<Rigidbody>();
-        }
+        if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
         rb.isKinematic = true;
         rb.useGravity = false;
 
-        // ตั้งค่า Collider ให้เป็น Trigger
         Collider col = GetComponent<Collider>();
-        if (col != null)
-        {
-            col.isTrigger = true;
-        }
-
-        // เริ่ม Coroutine: รอ hoverDuration แล้วค่อยพุ่ง
-        StartCoroutine(HoverThenLaunch());
+        if (col != null) col.isTrigger = true;
     }
 
-    IEnumerator HoverThenLaunch()
+    /// <summary>
+    /// เรียกจาก BossAI หลังตั้งค่า speed, damage, hoverDuration, target แล้ว
+    /// </summary>
+    public void Initialize()
     {
-        // === ถ้า hoverDuration <= 0 → ยิงทันทีไม่ต้อง hover ===
+        timer = 0f;
+
         if (hoverDuration <= 0f)
         {
-            // ยิงตรงไปตามทิศทางที่หันอยู่ (ไม่ track Player)
-            if (target != null)
-            {
-                Vector3 targetPoint = target.position + Vector3.up * 1.0f;
-                launchDirection = (targetPoint - transform.position).normalized;
-            }
-            else
-            {
-                launchDirection = transform.forward;
-            }
-
-            isLaunched = true;
-            Debug.Log("BossProjectile: Instant Launch!");
+            // ยิงทันที ไม่ต้อง hover
+            CalculateLaunchDirection();
+            state = State.Launched;
             Destroy(gameObject, lifetimeAfterLaunch);
-            yield break;
+            Debug.Log($"BossProjectile: Instant Launch! dir={launchDirection} Homing={isHoming}");
         }
+        else
+        {
+            state = State.Hovering;
+            Debug.Log($"BossProjectile: Hovering for {hoverDuration}s. target={(target != null ? target.name : "null")}");
+        }
+    }
 
-        // === ลอยอยู่กับที่ ===
-        yield return new WaitForSeconds(hoverDuration);
-
-        // === คำนวณทิศทางไป Player (ตอนที่พุ่ง) ===
+    void CalculateLaunchDirection()
+    {
         if (target != null)
         {
-            Vector3 targetPoint = target.position + Vector3.up * 1.0f;
+            Vector3 targetPoint = target.position + Vector3.up * 1.0f; // เล็งที่ตัว (สูงขึ้นหน่อย)
             launchDirection = (targetPoint - transform.position).normalized;
         }
         else
         {
             launchDirection = transform.forward;
         }
-
-        isLaunched = true;
-        Debug.Log("BossProjectile: Launched!");
-
-        // Auto-destroy หลังพุ่งไปสักพัก
-        Destroy(gameObject, lifetimeAfterLaunch);
     }
 
     void Update()
     {
-        if (!isLaunched) return;
+        switch (state)
+        {
+            case State.WaitingInit:
+                break;
 
-        // พุ่งไปตามทิศทางที่คำนวณไว้
-        transform.position += launchDirection * speed * Time.deltaTime;
+            case State.Hovering:
+                timer += Time.deltaTime;
+                if (timer >= hoverDuration)
+                {
+                    // หมดเวลา hover → พุ่งไปหา Player!
+                    CalculateLaunchDirection();
+                    state = State.Launched;
+                    timer = 0f;
+                    Destroy(gameObject, lifetimeAfterLaunch);
+                    Debug.Log($"BossProjectile: LAUNCHED! dir={launchDirection} speed={speed}");
+                }
+                break;
+
+            case State.Launched:
+                timer += Time.deltaTime;
+
+                // === Logic ติดตาม (Homing) ===
+                if (isHoming && target != null)
+                {
+                    Vector3 targetPoint = target.position + Vector3.up * 1.0f;
+                    Vector3 toTarget = targetPoint - transform.position;
+                    float dist = toTarget.magnitude;
+
+                    // ถ้าใกล้มาก (< 1.0 เมตร) พุ่งใส่เลย ไม่ต้องเลี้ยวแล้ว (กันวนรอบตัว)
+                    if (dist < 1.0f)
+                    {
+                        launchDirection = toTarget.normalized;
+                    }
+                    else
+                    {
+                        Vector3 desiredDir = toTarget.normalized;
+                        // ถ้าใกล้ (< 3.0 เมตร) เลี้ยวไวขึ้น 3 เท่า
+                        float currentTurnSpeed = (dist < 3.0f) ? turnSpeed * 3f : turnSpeed;
+                        launchDirection = Vector3.Slerp(launchDirection, desiredDir, currentTurnSpeed * Time.deltaTime);
+                    }
+                }
+
+                // === Manual Check Collision (กันทะลุ) ===
+                // ยิง Ray ไปข้างหน้าเท่าระยะที่จะขยับเฟรมนี้
+                float moveDist = speed * Time.deltaTime;
+                if (Physics.Raycast(transform.position, launchDirection, out RaycastHit hit, moveDist * 1.5f)) // *1.5f เผื่อหน่อย
+                {
+                    if (hit.collider.CompareTag("Player"))
+                    {
+                        DealDamageToPlayer(hit.collider.gameObject);
+                        Destroy(gameObject);
+                        return; // จบเฟรมนี้
+                    }
+                    else if (timer >= 0.3f && !hit.collider.CompareTag("Boss"))
+                    {
+                         // ชนกำแพง/พื้น
+                         Destroy(gameObject);
+                         return;
+                    }
+                }
+
+                // สั่งเคลื่อนที่
+                transform.position += launchDirection * moveDist;
+                
+                // หันหน้ากระสุนไปตามทิศที่พุ่งไป
+                if (launchDirection != Vector3.zero)
+                {
+                    transform.rotation = Quaternion.LookRotation(launchDirection);
+                }
+                break;
+        }
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // ไม่ชนตัวเอง/บอส
         if (other.CompareTag("Boss")) return;
-
-        // ชน Player → ทำดาเมจ → ทำลายตัวเอง
+        if (state != State.Launched) return;
+        
         if (other.CompareTag("Player"))
         {
-            HealthManager hm = other.GetComponent<HealthManager>();
-            if (hm == null) hm = other.GetComponentInParent<HealthManager>();
-            if (hm != null)
-            {
-                hm.TakeDamage(damage);
-                Debug.Log($"BossProjectile: Hit Player! Dealt {damage} damage.");
-            }
-
+            DealDamageToPlayer(other.gameObject);
             Destroy(gameObject);
             return;
         }
 
-        // ชนพื้น/กำแพง → ทำลายตัวเอง
+        if (timer < 0.3f) return;
         Destroy(gameObject);
     }
 
-    // Fallback: ถ้า Collider ไม่ได้เป็น Trigger
     void OnCollisionEnter(Collision collision)
     {
         if (collision.collider.CompareTag("Boss")) return;
+        if (state != State.Launched) return;
 
+        // ถ้าชน Player → ชนได้เลยไม่ต้องรอ Grace Time
         if (collision.collider.CompareTag("Player"))
         {
-            HealthManager hm = collision.collider.GetComponent<HealthManager>();
-            if (hm == null) hm = collision.collider.GetComponentInParent<HealthManager>();
-            if (hm != null)
-            {
-                hm.TakeDamage(damage);
-                Debug.Log($"BossProjectile: Hit Player (Collision)! Dealt {damage} damage.");
-            }
+            DealDamageToPlayer(collision.collider.gameObject);
+            Destroy(gameObject);
+            return;
         }
 
+        // ถ้าชนอย่างอื่น (กำแพง/พื้น) → รอ 0.3 วิ
+        if (timer < 0.3f) return;
+
         Destroy(gameObject);
+    }
+
+    void DealDamageToPlayer(GameObject playerObj)
+    {
+        HealthManager hm = playerObj.GetComponent<HealthManager>();
+        if (hm == null) hm = playerObj.GetComponentInParent<HealthManager>();
+        if (hm != null)
+        {
+            hm.TakeDamage(damage);
+            Debug.Log($"BossProjectile: Hit Player! Dealt {damage} damage.");
+        }
     }
 }
