@@ -23,6 +23,8 @@ public class BossAI : MonoBehaviour
     public float rainSpreadAngle = 60f;     
     public float rainProjectileSpeed = 10f; // ลดจาก 18 (กระสุนช้าลง)
     public float rainDamage = 15f;          // ดาเมจต่อลูก
+    public float rainBackSpeed = 6f;        // ความเร็วถอยหลังก่อนยิง
+    public float rainBackDuration = 1.0f;   // ระยะเวลาถอยหลัง (วินาที)
     public float rainRange = 14f;           // ระยะที่จะเริ่มใช้ Rain
     public float spawnHeight = 1.5f;        // ความสูงของจุดสร้างกระสุน
     public GameObject projectilePrefab;     // ลาก Prefab กระสุนใส่ตรงนี้
@@ -75,6 +77,14 @@ public class BossAI : MonoBehaviour
     public AudioClip burstSound;    // เสียง Burst
     public AudioClip hitSound;      // เสียงโดนตี/Parry
     public AudioClip deathSound;    // เสียงตาย
+
+    [Header("Sound Timing (เวลาหน่วงเสียง) หน่วย:วินาที")]
+    public float attackSoundDelay = 0.2f;   // ดีเลย์เสียงโจมตี
+    public float powerSoundDelay = 0.5f;    // ดีเลย์เสียง Power
+    public float dashSoundDelay = 0.1f;     // ดีเลย์เสียง Dash
+    public float rainSoundDelay = 0.5f;     // ดีเลย์เสียง Rain
+    public float homingSoundDelay = 0.5f;   // ดีเลย์เสียง Homing
+    public float burstSoundDelay = 0.8f;    // ดีเลย์เสียง Burst
     public float currentHealth;
     public bool isDead = false;
     private bool hasDied = false; // ตัวเช็คว่าตายจริงหรือยัง (กันซ้ำ)
@@ -270,7 +280,7 @@ public class BossAI : MonoBehaviour
         lastAttackWasPower = false;
         
         Debug.Log("Boss: Attack Start!");
-        PlaySound(attackSound); // เล่นเสียงโจมตี
+        PlaySound(attackSound, attackSoundDelay); // เล่นเสียงโจมตี (มีดีเลย์)
         StartCoroutine(DelayDealDamage(attackHitDelay));
     }
 
@@ -281,7 +291,7 @@ public class BossAI : MonoBehaviour
         lastAttackWasPower = true;
         
         Debug.Log("Boss: Use Power Start!");
-        PlaySound(powerSound); // เล่นเสียง Power
+        PlaySound(powerSound, powerSoundDelay); // เล่นเสียง Power (มีดีเลย์)
         StartCoroutine(DelayDealDamage(powerHitDelay));
     }
 
@@ -292,7 +302,7 @@ public class BossAI : MonoBehaviour
         lastDashTime = Time.time;
         isUsingSkill = true;
         Debug.Log("Boss: Dash Attack! — Charging at Player!");
-        PlaySound(dashSound); // เล่นเสียง Dash
+        PlaySound(dashSound, dashSoundDelay); // เล่นเสียง Dash
         currentSkillCoroutine = StartCoroutine(DashAttackSequence());
     }
 
@@ -384,17 +394,41 @@ public class BossAI : MonoBehaviour
         lastRainTime = Time.time;
         isUsingSkill = true;
         Debug.Log("Boss: Projectile Rain! — Firing fan of projectiles!");
-        PlaySound(rainSound); // เล่นเสียง Rain
+        PlaySound(rainSound, rainSoundDelay); // เล่นเสียง Rain
         currentSkillCoroutine = StartCoroutine(ProjectileRainSequence());
     }
 
     IEnumerator ProjectileRainSequence()
     {
-        // หยุดก่อน
+        // หยุด NavMesh ชั่วคราว (เราจะใช้ agent.Move เองตอนถอย)
         if (agent.isOnNavMesh) agent.isStopped = true;
+        
+        // === Phase 0: ถอยหลังตั้งหลัก (Backstep) ===
+        // ถอยหลังเพื่อให้มีระยะห่างก่อนยิง (Kiting)
+        Debug.Log("Boss: Projectile Rain — Backstepping...");
+        float backTimer = 0f;
+        while (backTimer < rainBackDuration)
+        {
+             if (isDead) { isUsingSkill = false; yield break; }
+             
+             // หาทางหนี (ทิศตรงข้าม Player)
+             Vector3 dirAway = (transform.position - player.position).normalized;
+             dirAway.y = 0; // ไม่เหาะขึ้นฟ้า
+             
+             // ใช้ agent.Move เพื่อไม่ให้ทะลุกำแพง (ดีกว่า transform.position)
+             agent.Move(dirAway * rainBackSpeed * globalSpeedMultiplier * Time.deltaTime);
+             
+             // หันหน้ามอง Player ตลอด (เดินถอยหลังเท่ๆ)
+             FaceTarget(player.position);
+             
+             backTimer += Time.deltaTime;
+             yield return null;
+        }
+        
+        // หยุดและเตรียมยิง
         agent.velocity = Vector3.zero;
 
-        // หันหน้าเข้าหา Player
+        // หันหน้าเข้าหา Player ให้ชัวร์อีกที
         FaceTarget(player.position);
         yield return null;
         FaceTarget(player.position);
@@ -508,7 +542,7 @@ public class BossAI : MonoBehaviour
         lastHomingTime = Time.time;
         isUsingSkill = true;
         Debug.Log("Boss: Homing Skill Start!");
-        PlaySound(homingSound); // เล่นเสียง Homing
+        PlaySound(homingSound, homingSoundDelay); // เล่นเสียง Homing
         currentSkillCoroutine = StartCoroutine(HomingSequence());
     }
 
@@ -593,7 +627,7 @@ public class BossAI : MonoBehaviour
         lastBurstTime = Time.time;
         isUsingSkill = true;
         Debug.Log("Boss: Burst Skill Start!");
-        PlaySound(burstSound); // เล่นเสียง Burst
+        PlaySound(burstSound, burstSoundDelay); // เล่นเสียง Burst
         currentSkillCoroutine = StartCoroutine(BurstSequence());
     }
 
@@ -882,9 +916,25 @@ public class BossAI : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, rainRange);
     }
 
-    void PlaySound(AudioClip clip)
+    void PlaySound(AudioClip clip, float delay = 0f)
     {
         if (clip != null && audioSource != null)
+        {
+            if (delay > 0)
+            {
+                StartCoroutine(PlaySoundRoutine(clip, delay));
+            }
+            else
+            {
+                audioSource.PlayOneShot(clip);
+            }
+        }
+    }
+
+    IEnumerator PlaySoundRoutine(AudioClip clip, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (audioSource != null && !isDead)
         {
             audioSource.PlayOneShot(clip);
         }

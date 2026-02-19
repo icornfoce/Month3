@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &770171864824678549
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2154354382897682388}
+  m_Layer: 0
+  m_Name: RainSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2154354382897682388
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 770171864824678549}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5219303136588451798}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &5756737157764130877
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -48,17 +79,52 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -3081994679161391779, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -3081994679161391779, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3081994679161391779, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
       propertyPath: m_Name
       value: Mesh_0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      propertyPath: m_TagString
+      value: Boss
       objectReference: {fileID: 0}
     - target: {fileID: 2664098864995057252, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b14512a151d3afc4faaaf87d9bbfad61, type: 2}
+    - target: {fileID: 5465940246521907071, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5465940246521907071, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5465940246521907071, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5465940246521907071, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2154354382897682388}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
       insertIndex: -1
@@ -131,31 +197,70 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73bb374a52565424a99d0c0a4eef4226, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossAI
+  globalSpeedMultiplier: 1
   moveSpeed: 3.5
   attackRange: 2
   powerRange: 6
   attackCooldown: 1.5
   powerCooldown: 10
-  skillCooldown: 15
-  skillDamage: 25
-  skillBackupSpeed: 12
-  skillBackupDistance: 6
-  skillRange: 10
-  projectileSpeed: 14
-  skillAnimDelay: 0.5
-  projectileHoverTime: 5
-  projectileCount: 2
-  spawnSpread: 2
+  rainCooldown: 10
+  rainProjectileCount: 5
+  rainSpreadAngle: 60
+  rainProjectileSpeed: 10
+  rainDamage: 15
+  rainBackSpeed: 6
+  rainBackDuration: 1
+  rainRange: 14
   spawnHeight: 1.5
-  projectilePrefab: {fileID: 0}
+  projectilePrefab: {fileID: 1923750421664220717, guid: e517b9a0cd1d2d34aad442332c463c5e, type: 3}
+  rainSpawnPoint: {fileID: 2154354382897682388}
+  dashCooldown: 5
+  dashSpeed: 8
+  dashDamage: 35
+  dashRange: 12
+  dashMinRange: 5
+  dashHitRadius: 2
+  homingCooldown: 10
+  homingCount: 3
+  homingSpeed: 3.5
+  homingTurnSpeed: 0.5
+  homingDuration: 8
+  homingRange: 15
+  burstCooldown: 1
+  burstCount: 12
+  burstSpeed: 5
+  burstDamage: 20
+  burstRange: 8
   attackDamage: 15
   powerDamage: 30
-  attackHitDelay: 0.5
-  powerHitDelay: 0.8
+  attackHitDelay: 1.2
+  powerHitDelay: 1
   maxHealth: 200
+  deathEffectPrefab: {fileID: 0}
+  destroyDelay: 5
+  attackSound: {fileID: 8300000, guid: 07cab916f0e8c9041a92dd21536eeda7, type: 3}
+  powerSound: {fileID: 8300000, guid: f342496f25232754fbb630fcae35f064, type: 3}
+  dashSound: {fileID: 8300000, guid: efb2953878139494b9b1c81c8c8caadc, type: 3}
+  rainSound: {fileID: 8300000, guid: 3255e7333eeb14a41923d9060f420928, type: 3}
+  homingSound: {fileID: 8300000, guid: 2473256953d32f94e90764ce53b03d64, type: 3}
+  burstSound: {fileID: 8300000, guid: 86e6b81c6cacf0d4aa178b9a9a59e62c, type: 3}
+  hitSound: {fileID: 8300000, guid: f95ccba48ecbf7f45896aa9e9e8f2cd6, type: 3}
+  deathSound: {fileID: 8300000, guid: e94913829e8abe7478e5ff47d8d14238, type: 3}
+  attackSoundDelay: 1
+  powerSoundDelay: 0.5
+  dashSoundDelay: 0.1
+  rainSoundDelay: 3
+  homingSoundDelay: 1
+  burstSoundDelay: 1
   currentHealth: 0
   isDead: 0
   jumpForce: 5
   enableJumping: 1
   playerTag: Player
-  skillSound: {fileID: 0}
+  stunDuration: 3
+  isStunned: 0
+--- !u!4 &5219303136588451798 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 939f2d107e75fd64082352d0e483ff2a, type: 3}
+  m_PrefabInstance: {fileID: 5756737157764130877}
+  m_PrefabAsset: {fileID: 0}
