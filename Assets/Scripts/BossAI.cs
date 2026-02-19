@@ -838,12 +838,21 @@ public class BossAI : MonoBehaviour
 
         if (currentDistance <= hitDistanceCheck)
         {
+            // เช็คว่า Player กำลัง Parry อยู่หรือไม่
+            PlayerParry pp = player.GetComponent<PlayerParry>();
+            if (pp != null && pp.isParryingState)
+            {
+                Debug.Log("<color=green>Parry SUCCESSFUL! Damage blocked by Player.</color>");
+                OnParried(); // บอสติดสตั้น
+                return;
+            }
+
             HealthManager hm = player.GetComponent<HealthManager>();
             if (hm != null)
             {
                 float damage = lastAttackWasPower ? powerDamage : attackDamage;
                 hm.TakeDamage(damage);
-                Debug.Log($"Boss dealt {damage} damage to Player!");
+                Debug.Log($"<color=red>Parry FAILED! Boss dealt {damage} damage to Player!</color>");
             }
         }
     }

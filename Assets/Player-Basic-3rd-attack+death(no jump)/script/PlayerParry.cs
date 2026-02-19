@@ -30,6 +30,7 @@ public class PlayerParry : MonoBehaviour
     IEnumerator PerformParry()
     {
         isParryingState = true;
+        Debug.Log("<color=cyan>Player: Parry Window STARTED</color>");
 
         // สั่งเล่นแอนิเมชัน (อย่าลืมตั้งชื่อใน Animator ให้ตรง)
         if (anim != null) anim.SetTrigger("isParrying");
@@ -38,5 +39,6 @@ public class PlayerParry : MonoBehaviour
         yield return new WaitForSeconds(parryWindow);
 
         isParryingState = false;
+        Debug.Log("<color=gray>Player: Parry Window ENDED</color>");
     }
 }

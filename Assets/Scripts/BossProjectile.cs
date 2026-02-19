@@ -179,12 +179,20 @@ public class BossProjectile : MonoBehaviour
 
     void DealDamageToPlayer(GameObject playerObj)
     {
+        // เช็คว่า Player กำลัง Parry อยู่หรือไม่
+        PlayerParry pp = playerObj.GetComponent<PlayerParry>();
+        if (pp != null && pp.isParryingState)
+        {
+            Debug.Log("<color=green>Projectile Parry SUCCESSFUL! Damage blocked.</color>");
+            return; // ไม่ทำดาเมจ
+        }
+
         HealthManager hm = playerObj.GetComponent<HealthManager>();
         if (hm == null) hm = playerObj.GetComponentInParent<HealthManager>();
         if (hm != null)
         {
             hm.TakeDamage(damage);
-            Debug.Log($"BossProjectile: Hit Player! Dealt {damage} damage.");
+            Debug.Log($"<color=red>Projectile Parry FAILED! Dealt {damage} damage to Player.</color>");
         }
     }
 }
