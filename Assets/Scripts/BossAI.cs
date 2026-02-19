@@ -787,7 +787,7 @@ public class BossAI : MonoBehaviour
         if (isDead) return;
 
         currentHealth -= amount;
-        Debug.Log($"Boss HP: {currentHealth}/{maxHealth}");
+        Debug.Log($"<color=orange>Boss took {amount} damage! Current HP: {currentHealth}/{maxHealth}</color>");
 
         // เล่น Animation โดนตี
         animator.SetTrigger(animHitID);
@@ -877,7 +877,8 @@ public class BossAI : MonoBehaviour
             if (pp != null && pp.isParryingState)
             {
                 Debug.Log("<color=green>Parry SUCCESSFUL! Damage blocked by Player.</color>");
-                OnParried(); // บอสติดสตั้น
+                pp.SuccessfulParry(); // สั่งให้เล่นแอนิเมชันสำเร็จทันที
+                OnParried(); // ทำให้บอสมึน
                 return;
             }
 

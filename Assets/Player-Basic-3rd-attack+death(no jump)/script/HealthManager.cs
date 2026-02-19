@@ -6,10 +6,16 @@ public class HealthManager : MonoBehaviour
     private bool isDead = false;
     private Animator anim;
 
+    [Header("Stun Settings")]
+    public float takeDamageDuration = 1.0f; // ปรับเวลาชะงัก (Stun) ตรงนี้
+    public bool isTakingDamage = false;
+    private Coroutine hitCoroutine;
+
 
     void Start()
     {
-        anim = GetComponent<Animator>();
+        anim = GetComponentInChildren<Animator>();
+        if (anim == null) anim = GetComponent<Animator>();
     }
 
     void Update()
@@ -17,7 +23,7 @@ public class HealthManager : MonoBehaviour
         if (isDead) return;
 
         // อัปเดตค่าเข้า Animator ตลอดเวลา
-        anim.SetFloat("health", health);
+        if (anim != null) anim.SetFloat("health", health);
 
         if (health <= 0)
         {
@@ -45,10 +51,43 @@ public class HealthManager : MonoBehaviour
         health -= amount;
         Debug.Log($"Player HP: {health}");
 
+        // 1. ยกเลิกการโจมตีทันที
+        PlayerAttack attack = GetComponent<PlayerAttack>();
+        if (attack != null) attack.CancelAttack();
 
+        // 2. หยุดแอนิเมชันเก่าและเล่นแอนิเมชันเจ็บทันที
+        if (hitCoroutine != null) StopCoroutine(hitCoroutine);
+        hitCoroutine = StartCoroutine(HitCoroutine());
+    }
 
-        // ถ้ามี Animation เจ็บ (Hit) ก็ใส่ตรงนี้ได้
-        // anim.SetTrigger("Hit"); 
+    private System.Collections.IEnumerator HitCoroutine()
+    {
+        isTakingDamage = true;
+        
+        if (anim != null) 
+        {
+            // ปิดค่า Velocity ทันทีเพื่อไม่ให้มันขัดจังหวะการเปลี่ยน State
+            anim.SetFloat("Velocity Y", 0f); 
+            anim.SetBool("IstakeDMG", true);
+            
+            // ใช้ Play แบบเจาะจง Layer 0 และเริ่มที่วินาทีที่ 0 ทันที
+            anim.Play("Stagger", 0, 0f); 
+            Debug.Log("HealthManager: Forced 'Stagger' animation.");
+        }
+        
+        yield return new WaitForSeconds(takeDamageDuration);
+        
+        if (anim != null) anim.SetBool("IstakeDMG", false);
+        isTakingDamage = false;
+        hitCoroutine = null;
+    }
+
+    public void ClearStagger()
+    {
+        if (hitCoroutine != null) StopCoroutine(hitCoroutine);
+        if (anim != null) anim.SetBool("IstakeDMG", false);
+        isTakingDamage = false;
+        hitCoroutine = null;
     }
 
     void Die()

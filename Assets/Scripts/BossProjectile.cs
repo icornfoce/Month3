@@ -179,16 +179,20 @@ public class BossProjectile : MonoBehaviour
 
     void DealDamageToPlayer(GameObject playerObj)
     {
-        // เช็คว่า Player กำลัง Parry อยู่หรือไม่
+        // เช็คว่า Player กำลัง Parry อยู่หรือไม่ (เผื่อ Colliders อยู่ในลูกหลาน)
         PlayerParry pp = playerObj.GetComponent<PlayerParry>();
+        if (pp == null) pp = playerObj.GetComponentInParent<PlayerParry>();
+
         if (pp != null && pp.isParryingState)
         {
             Debug.Log("<color=green>Projectile Parry SUCCESSFUL! Damage blocked.</color>");
+            pp.SuccessfulParry(); // สั่งให้เล่นแอนิเมชันสำเร็จทันที
             return; // ไม่ทำดาเมจ
         }
 
         HealthManager hm = playerObj.GetComponent<HealthManager>();
         if (hm == null) hm = playerObj.GetComponentInParent<HealthManager>();
+        
         if (hm != null)
         {
             // เช็คว่า Player กำลังหลบอยู่หรือไม่ (Invincible)

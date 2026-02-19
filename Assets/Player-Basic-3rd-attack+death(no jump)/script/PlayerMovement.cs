@@ -35,7 +35,7 @@ public class PlayerMovement : MonoBehaviour
     public PlayerAttack playerAttack;
 
     [Header("Health Reference")]
-    public PlayerHealth playerHealth;
+    public HealthManager healthManager;
 
     // ตัวแปรที่ใช้คำนวณความเร็วและการหมุน (แก้ Error CS0103)
     private float turnSmoothVelocity;
@@ -56,7 +56,7 @@ public class PlayerMovement : MonoBehaviour
         anim.applyRootMotion = false; 
 
         if (playerAttack == null) playerAttack = GetComponent<PlayerAttack>();
-        if (playerHealth == null) playerHealth = GetComponent<PlayerHealth>();
+        if (healthManager == null) healthManager = GetComponent<HealthManager>();
     }
 
     void Update()
@@ -78,10 +78,10 @@ public class PlayerMovement : MonoBehaviour
                 playerAttack.CancelAttack();
             }
 
-            // ถ้ากำลังติดสถานะโดนดาเมจ ให้ยกเลิกสถานะนั้นเพื่อหลบได้ทันที (แบบ Elden Ring)
-            if (playerHealth != null && playerHealth.isTakingDamage)
+            // ถ้ากำลังติดสถานะโดนดาเมจ ให้ยกเลิกสถานะนั้นเพื่อหลบได้ทันที (Dodge Cancel Stagger)
+            if (healthManager != null && healthManager.isTakingDamage)
             {
-                playerHealth.ClearStagger();
+                healthManager.ClearStagger();
             }
 
             if (staminaManager != null)
@@ -97,11 +97,18 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        bool isTakingDMG = healthManager != null && healthManager.isTakingDamage;
+
         // ใช้ isDodgeLockingMovement แทน isDodgingTag เพื่อให้คลายล็อคได้เร็วกว่าแอนิเมชันจบ
-        if (isAttacking || isDodgeLockingMovement)
+        if (isAttacking || isDodgeLockingMovement || isTakingDMG)
         {
             movementInput = Vector3.zero;
-            if (anim != null) anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
+            if (anim != null) 
+            {
+                // ถ้าโดนดาเมจ ให้หยุดทันทีแบบไม่มี damping
+                if (isTakingDMG) anim.SetFloat("Velocity Y", 0f);
+                else anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
+            }
             return;
         }
 

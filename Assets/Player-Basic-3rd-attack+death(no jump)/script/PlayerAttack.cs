@@ -22,103 +22,75 @@ public class PlayerAttack : MonoBehaviour
     public PlayerMovement playerMovement;
 
     [Header("Health Reference")]
-    public PlayerHealth playerHealth;
+    public HealthManager healthManager;
+
+    [Header("Weapon Trigger")]
+    public PlayerWeaponTrigger weaponTrigger;
 
     private Animator anim;
-    private bool isLightAttack = true;
     private bool isAttackingFlag = false;
-    private Coroutine attackCoroutine;
 
     void Start()
     {
-        anim = GetComponent<Animator>();
+        anim = GetComponentInChildren<Animator>();
+        if (anim == null) anim = GetComponent<Animator>();
+
         if (playerMovement == null) playerMovement = GetComponent<PlayerMovement>();
-        if (playerHealth == null) playerHealth = GetComponent<PlayerHealth>();
+        if (healthManager == null) healthManager = GetComponent<HealthManager>();
+
+        // พยายามหา WeaponTrigger ถ้ายังไม่ได้ลากใส่
+        if (weaponTrigger == null) weaponTrigger = GetComponentInChildren<PlayerWeaponTrigger>();
         
-        if (attackPoint == null)
-        {
-            GameObject point = new GameObject("AttackPoint");
-            point.transform.parent = transform;
-            point.transform.localPosition = new Vector3(0f, 1f, 1f);
-            attackPoint = point.transform;
-        }
+        Debug.Log($"PlayerAttack: Start complete. Anim: {anim != null}, WeaponTrigger: {weaponTrigger != null}");
     }
 
     void Update()
     {
-        // ถ้ากำลังติด Lock จากการหลบ กำลังโจมตีอยู่ หรือกำลังโดนดาเมจ จะไม่รับ Input ใหม่
+        if (anim == null || isAttackingFlag) return;
+
         bool isDodgeLocked = playerMovement != null && playerMovement.isDodgeLockingMovement;
-        bool isTakingDMG = playerHealth != null && playerHealth.isTakingDamage;
+        bool isTakingDMG = healthManager != null && healthManager.isTakingDamage;
 
-        if (isAttackingFlag || isDodgeLocked || isTakingDMG || anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") || anim.IsInTransition(0)) return;
+        if (isDodgeLocked || isTakingDMG || anim.IsInTransition(0)) return;
 
-        if (Input.GetMouseButtonDown(0)) attackCoroutine = StartCoroutine(PerformAttack(true));
-        else if (Input.GetMouseButtonDown(1)) attackCoroutine = StartCoroutine(PerformAttack(false));
+        if (Input.GetMouseButtonDown(0)) StartCoroutine(PerformAttack(true));
+        else if (Input.GetMouseButtonDown(1)) StartCoroutine(PerformAttack(false));
     }
 
     IEnumerator PerformAttack(bool isLight)
     {
         isAttackingFlag = true;
-        // Stamina integration for attacking
+
         if (staminaManager != null)
         {
             float cost = isLight ? staminaManager.lightAttackStaminaCost : staminaManager.heavyAttackStaminaCost;
             if (!staminaManager.UseStamina(cost))
             {
-                // Not enough stamina
                 isAttackingFlag = false;
                 yield break;
             }
         }
 
-        isLightAttack = isLight;
+        anim.SetTrigger(isLight ? "Is attack light" : "Is attack heavy");
 
-        // Reset Trigger เก่าก่อนเพื่อป้องกันบัค
-        anim.ResetTrigger("Is attack light");
-        anim.ResetTrigger("Is attack heavy");
-
-        string triggerName = isLight ? "Is attack light" : "Is attack heavy";
-        anim.SetTrigger(triggerName);
-
-        // รอให้ดาเมจเกิดตามดีเลย์
+        // 1. เปิด Trigger (รอจังหวะที่ดาบเหวี่ยง)
         yield return new WaitForSeconds(attackHitDelay);
-        DealDamageToEnemy();
+        if (weaponTrigger != null) 
+            weaponTrigger.EnableTrigger(isLight ? lightDamage : heavyDamage);
 
-        // รออีกสักพักเพื่อให้แอนิเมชันเริ่มเล่นหรือจบช่วงที่กันการกดซ้ำซ้อน
-        // หรือรอจนกว่าจะพ้นช่วง Attack Tag (เราจะใช้ cooldown สั้นๆ กันไว้ด้วย)
-        yield return new WaitForSeconds(0.3f); 
+        // 2. ปิด Trigger (รอจนกว่าจะจบวงสวิง)
+        yield return new WaitForSeconds(0.4f); 
+        if (weaponTrigger != null) weaponTrigger.DisableTrigger();
+
         isAttackingFlag = false;
-        attackCoroutine = null;
     }
 
     public void CancelAttack()
     {
-        if (attackCoroutine != null)
-        {
-            StopCoroutine(attackCoroutine);
-            attackCoroutine = null;
-        }
-        
+        StopAllCoroutines();
+        if (weaponTrigger != null) weaponTrigger.DisableTrigger();
         isAttackingFlag = false;
-        
-        // Reset Triggers and Tag impacts
         anim.ResetTrigger("Is attack light");
         anim.ResetTrigger("Is attack heavy");
-        
-        // เราไม่สามารถหยุด Animator animation ทันทีได้ในวิธีที่ง่ายที่สุด แต่การ Reset Trigger และ Flag 
-        // จะทำให้ PlayerMovement สามารถข้ามการเช็ค Tag Attack ได้ถ้าเราปรับโค้ดฝั่งนั้น
-    }
-
-    public void DealDamageToEnemy()
-    {
-        if (attackPoint == null) return;
-        float damage = isLightAttack ? lightDamage : heavyDamage;
-        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange, enemyLayer);
-
-        foreach (Collider enemy in hitEnemies)
-        {
-            var boss = enemy.GetComponent<BossAI>();
-            if (boss != null) boss.TakeDamage(damage);
-        }
     }
 }
