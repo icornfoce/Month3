@@ -850,6 +850,14 @@ public class BossAI : MonoBehaviour
             HealthManager hm = player.GetComponent<HealthManager>();
             if (hm != null)
             {
+                // เช็คว่า Player กำลังหลบอยู่หรือไม่ (Invincible)
+                PlayerMovement movement = player.GetComponent<PlayerMovement>();
+                if (movement != null && movement.IsInvincible)
+                {
+                    Debug.Log("<color=blue>Player DODGED the attack!</color>");
+                    return; // ไม่ทำดาเมจ และไม่ log ว่า parry failed
+                }
+
                 float damage = lastAttackWasPower ? powerDamage : attackDamage;
                 hm.TakeDamage(damage);
                 Debug.Log($"<color=red>Parry FAILED! Boss dealt {damage} damage to Player!</color>");

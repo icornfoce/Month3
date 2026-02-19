@@ -34,6 +34,14 @@ public class HealthManager : MonoBehaviour
     {
         if (isDead) return;
 
+        // เช็คสถานะอมตะจากการหลบ (Dodge)
+        PlayerMovement movement = GetComponent<PlayerMovement>();
+        if (movement != null && (movement.isImmortal || movement.IsInvincible))
+        {
+            Debug.Log("<color=yellow>Player is Invincible! Damage ignored.</color>");
+            return;
+        }
+
         health -= amount;
         Debug.Log($"Player HP: {health}");
 

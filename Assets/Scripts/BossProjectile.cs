@@ -191,6 +191,16 @@ public class BossProjectile : MonoBehaviour
         if (hm == null) hm = playerObj.GetComponentInParent<HealthManager>();
         if (hm != null)
         {
+            // เช็คว่า Player กำลังหลบอยู่หรือไม่ (Invincible)
+            PlayerMovement movement = playerObj.GetComponent<PlayerMovement>();
+            if (movement == null) movement = playerObj.GetComponentInParent<PlayerMovement>();
+            
+            if (movement != null && movement.IsInvincible)
+            {
+                Debug.Log("<color=blue>Player DODGED the projectile!</color>");
+                return;
+            }
+
             hm.TakeDamage(damage);
             Debug.Log($"<color=red>Projectile Parry FAILED! Dealt {damage} damage to Player.</color>");
         }

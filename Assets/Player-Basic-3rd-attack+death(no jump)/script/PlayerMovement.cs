@@ -101,7 +101,7 @@ public class PlayerMovement : MonoBehaviour
         if (isAttacking || isDodgeLockingMovement)
         {
             movementInput = Vector3.zero;
-            anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
+            if (anim != null) anim.SetFloat("Velocity Y", 0f, 0.1f, Time.deltaTime);
             return;
         }
 
@@ -113,12 +113,8 @@ public class PlayerMovement : MonoBehaviour
         {
             if (staminaManager != null)
             {
-                // We consume per frame, so we multiply by delta time
                 bool hasStamina = staminaManager.UseStamina(staminaManager.runStaminaCost * Time.deltaTime);
-                if (!hasStamina)
-                {
-                    isRunning = false;
-                }
+                if (!hasStamina) isRunning = false;
             }
         }
 
@@ -145,9 +141,11 @@ public class PlayerMovement : MonoBehaviour
         anim.applyRootMotion = true;
         isDodgeLockingMovement = true;
         anim.SetTrigger("isDodging");
+        Debug.Log("Dodge Coroutine: Started, anim 'isDodging' triggered.");
 
         yield return new WaitForSeconds(iframeDuration);
         IsInvincible = false;
+        Debug.Log("Dodge Coroutine: Iframe ended.");
 
         // รอจนพ้นระยะเวลา Lockout ที่ตั้งไว้ใน Inspector
         // คำนวณเวลาที่เหลือหลังจากผ่านช่วง iframe ไปแล้ว
