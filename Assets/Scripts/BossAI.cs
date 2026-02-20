@@ -88,10 +88,11 @@ public class BossAI : MonoBehaviour
     public float currentHealth;
     public bool isDead = false;
     private bool hasDied = false; // ตัวเช็คว่าตายจริงหรือยัง (กันซ้ำ)
-    
-    [Header("Jump Settings (ตั้งค่ากระโดด)")]
+
+    /*[Header("Jump Settings (ตั้งค่ากระโดด)")]
     public float jumpForce = 5.0f;          // แรงกระโดด
-    public bool enableJumping = true;       // เปิดปิดระบบกระโดด
+    public bool enableJumping = true;
+            */
 
     [Header("Setup (การเชื่อมต่อ)")]
     public string playerTag = "Player";     // Tag ของผู้เล่นที่บอสจะวิ่งตาม
@@ -124,6 +125,7 @@ public class BossAI : MonoBehaviour
     private int animIsJumpingID;
     private int animHitID;
     private int animDeathID;
+    private int animParryHitID;
 
 
     private AudioSource audioSource;
@@ -183,6 +185,7 @@ public class BossAI : MonoBehaviour
         animIsJumpingID = Animator.StringToHash("IsJumping");
         animHitID = Animator.StringToHash("Hit");
         animDeathID = Animator.StringToHash("Death");
+        animParryHitID = Animator.StringToHash("isParryHit");
     }
 
     void Update()
@@ -734,52 +737,57 @@ public class BossAI : MonoBehaviour
     }
 
     // ========== ฟังก์ชันรับ Parrry (เรียกจาก Script อื่น) ==========
+    // ========== ฟังก์ชันรับ Parry (เรียกจาก Script อื่น) ==========
     public void OnParried()
     {
         if (isDead) return;
 
-        Debug.Log("Boss: PARRIED! Stunned!");
-        PlaySound(hitSound); // เล่นเสียงโดน Parry
-
-        // 1. หยุดทุกอย่างและการเคลื่อนไหว
+        // 1. หยุดการทำงานทุกอย่าง
         isStunned = true;
         isUsingSkill = false;
         isAttacking = false;
-        
-        // หยุด Coroutine สกิลที่กำลังรันอยู่ (ถ้ามี)
-        if (currentSkillCoroutine != null) 
-        {
-            StopCoroutine(currentSkillCoroutine);
-            currentSkillCoroutine = null;
-        }
+        StopAllCoroutines();
 
-        // หยุดเดิน
-        if (agent.isOnNavMesh) 
+        if (agent != null && agent.isOnNavMesh)
         {
             agent.isStopped = true;
             agent.velocity = Vector3.zero;
         }
 
-        // 2. เล่น Animation เจ็บ/ชะงัก (ใช้ Hit ไปก่อน)
-        animator.SetTrigger(animHitID);
+        // 2. บังคับเปลี่ยนท่าทันทีด้วย CrossFade
+        if (animator != null)
+        {
+            animator.SetBool("isParryHit", true);
+            // "ParryHitState" คือชื่อกล่อง Animation ใน Animator
+            // 0.1f คือเวลาในการเบลนด์ท่า (ยิ่งน้อยยิ่งเปลี่ยนไว)
+            animator.CrossFade("parry-hit", 0.05f);
+        }
 
-        // 3. เริ่มนับเวลาหาย Stun
-        StartCoroutine(StunRoutine());
+        // หมายเหตุ: ไม่ต้องใช้ StartCoroutine(StunRoutine) เพื่อ Set false แล้ว
+        // เราจะใช้ระบบอัตโนมัติใน Animator แทน (ดูข้อ 2)
     }
 
-    IEnumerator StunRoutine()
+    /*IEnumerator StunRoutine()
     {
+        // ในช่วงเวลานี้ Update() จะถูกบล็อกด้วย isStunned ทำให้บอสขยับไม่ได้เลย
         yield return new WaitForSeconds(stunDuration);
-        
+
+        // --- จบช่วงเวลาติดสตั้น ---
         isStunned = false;
-        Debug.Log("Boss: Recovered from Stun.");
+        Debug.Log("Boss: Recovered from Stun. Resuming AI...");
+
+        // ปิด Animation Parry Hit (กลับสู่ท่าปกติ)
+        if (animator != null)
+        {
+            animator.SetBool(animParryHitID, false);
+        }
 
         // กลับมาเดินต่อถ้ายังไม่ตาย
-        if (!isDead && agent.isOnNavMesh)
+        if (!isDead && agent != null && agent.isOnNavMesh)
         {
             agent.isStopped = false;
         }
-    }
+    } */
 
     // ========== ฟังก์ชันรับดาเมจ (เรียกจาก PlayerAttack) ==========
     public void TakeDamage(float amount)
