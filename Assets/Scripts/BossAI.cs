@@ -85,6 +85,11 @@ public class BossAI : MonoBehaviour
     public float rainSoundDelay = 0.5f;     // ดีเลย์เสียง Rain
     public float homingSoundDelay = 0.5f;   // ดีเลย์เสียง Homing
     public float burstSoundDelay = 0.8f;    // ดีเลย์เสียง Burst
+    [Header("Phase Settings")]
+    public int currentPhase = 1;
+    [Range(0.1f, 0.9f)]
+    public float phase2Threshold = 0.5f; // เปลี่ยนเฟสที่ 50%
+
     public float currentHealth;
     public bool isDead = false;
     private bool hasDied = false; // ตัวเช็คว่าตายจริงหรือยัง (กันซ้ำ)
@@ -233,39 +238,40 @@ public class BossAI : MonoBehaviour
         // ไม่รับคำสั่งโจมตีซ้อนถ้ากำลังโจมตีหรือใช้สกิลอยู่
         if (isAttacking || isUsingSkill) return;
 
-        // 1. ฝนกระสุน (Projectile Rain) — ไกลสุด ยิงพัด 5 ลูก
-        if (distance <= rainRange && Time.time >= lastRainTime + rainCooldown && projectilePrefab != null)
+        // --- Phase Selection Logic ---
+        
+        // ** ท่าที่ใช้ได้เฉพาะ เฟส 2 เท่านั้น **
+        if (currentPhase >= 2)
         {
-            PerformProjectileRain();
-            return;
+            // 1. พุ่งชาร์จ (Dash Attack)
+            if (distance <= dashRange && distance >= dashMinRange && Time.time >= lastDashTime + dashCooldown)
+            {
+                PerformDashAttack();
+                return;
+            }
+
+            // 2. ระเบิดรอบทิศ (Burst Skill)
+            if (distance <= burstRange && Time.time >= lastBurstTime + burstCooldown && projectilePrefab != null)
+            {
+                PerformBurstSkill();
+                return;
+            }
+
+            // 3. ฝนกระสุน (Projectile Rain)
+            if (distance <= rainRange && Time.time >= lastRainTime + rainCooldown && projectilePrefab != null)
+            {
+                PerformProjectileRain();
+                return;
+            }
         }
 
-        // 2. พุ่งชาร์จ (Dash Attack) — ระยะกลาง
-        if (distance <= dashRange && distance >= dashMinRange && Time.time >= lastDashTime + dashCooldown)
-        {
-            PerformDashAttack();
-            return;
-        }
-
-        // 3. กระสุนติดตาม (Homing) — ระยะไกล/กลาง (กวน Player)
+        // ** ท่าที่ใช้ได้ตั้งแต่ เฟส 1 (และยังใช้ต่อในเฟส 2) **
+        
+        // 4. กระสุนติดตาม (Homing)
         if (distance <= homingRange && Time.time >= lastHomingTime + homingCooldown && projectilePrefab != null)
         {
             PerformHomingSkill();
             return;
-        }
-
-        // 4. ระเบิดรอบทิศ (Burst) — ระยะใกล้-กลาง (ไล่ Player)
-        if (distance <= burstRange && Time.time >= lastBurstTime + burstCooldown && projectilePrefab != null)
-        {
-            PerformBurstSkill();
-            return;
-        }
-
-        // 5. ท่าพิเศษ (Use Power) (เปลี่ยนเป็นลำดับท้ายๆ หรือเอาไว้ใช้ท่าอื่นแทนได้)
-        if (distance <= powerRange && distance > attackRange && Time.time >= lastPowerTime + powerCooldown)
-        {
-             PerformUsePower();
-             return;
         }
 
         // 5. ท่าโจมตีปกติ (Attack)
@@ -696,6 +702,39 @@ public class BossAI : MonoBehaviour
         if (!isDead && agent.isOnNavMesh) agent.isStopped = false;
     }
 
+    // ========== ท่าพิเศษตอนเปลี่ยนเฟส (ปล่อยของรอบตัวเยอะๆ) ==========
+    void PerformPhaseTransitionBurst()
+    {
+        if (projectilePrefab == null) return;
+
+        Debug.Log("<color=red>Boss AI: PHASE 2 TRANSITION BURST!</color>");
+
+        // คำนวณจุดปล่อย
+        Vector3 center = (rainSpawnPoint != null) ? rainSpawnPoint.position : (transform.position + Vector3.up * spawnHeight);
+        
+        int burstCountTransition = 24; // ปล่อย 24 ลูกรอบตัว
+        float angleStep = 360f / burstCountTransition;
+
+        for (int i = 0; i < burstCountTransition; i++)
+        {
+            float angle = i * angleStep;
+            Quaternion rot = Quaternion.Euler(0, angle, 0);
+            Vector3 dir = rot * transform.forward;
+
+            GameObject proj = Instantiate(projectilePrefab, center, Quaternion.LookRotation(dir));
+            BossProjectile bp = proj.GetComponent<BossProjectile>();
+            if (bp != null)
+            {
+                // ตั้งค่าเพื่อให้ดูอลังการขึ้น
+                bp.speed = burstSpeed * 1.25f * globalSpeedMultiplier; 
+                bp.damage = burstDamage;
+                bp.hoverDuration = 1.0f; // ให้ลอยค้าง 1 วินาทีก่อนพุ่ง (เท่มาก!)
+                bp.target = null;
+                bp.Initialize();
+            }
+        }
+    }
+
 
 
     IEnumerator DelayDealDamage(float delay)
@@ -736,17 +775,20 @@ public class BossAI : MonoBehaviour
         }
     }
 
-    // ========== ฟังก์ชันรับ Parrry (เรียกจาก Script อื่น) ==========
     // ========== ฟังก์ชันรับ Parry (เรียกจาก Script อื่น) ==========
     public void OnParried()
     {
         if (isDead) return;
+
+        Debug.Log("Boss: PARRIED! Stunned!");
+        PlaySound(hitSound);
 
         // 1. หยุดการทำงานทุกอย่าง
         isStunned = true;
         isUsingSkill = false;
         isAttacking = false;
         StopAllCoroutines();
+        currentSkillCoroutine = null;
 
         if (agent != null && agent.isOnNavMesh)
         {
@@ -754,25 +796,22 @@ public class BossAI : MonoBehaviour
             agent.velocity = Vector3.zero;
         }
 
-        // 2. บังคับเปลี่ยนท่าทันทีด้วย CrossFade
+        // 2. เล่น Animation Parry Hit
         if (animator != null)
         {
-            animator.SetBool("isParryHit", true);
-            // "ParryHitState" คือชื่อกล่อง Animation ใน Animator
-            // 0.1f คือเวลาในการเบลนด์ท่า (ยิ่งน้อยยิ่งเปลี่ยนไว)
-            animator.CrossFade("parry-hit", 0.05f);
+            animator.SetBool(animParryHitID, true);
+            // บังคับเปลี่ยนท่าทันที
+            animator.CrossFade("parry-hit", 0.05f); 
         }
 
-        // หมายเหตุ: ไม่ต้องใช้ StartCoroutine(StunRoutine) เพื่อ Set false แล้ว
-        // เราจะใช้ระบบอัตโนมัติใน Animator แทน (ดูข้อ 2)
+        // 3. เริ่มการนับเวลาเพื่อหายสตั้น
+        StartCoroutine(StunRoutine());
     }
 
-    /*IEnumerator StunRoutine()
+    IEnumerator StunRoutine()
     {
-        // ในช่วงเวลานี้ Update() จะถูกบล็อกด้วย isStunned ทำให้บอสขยับไม่ได้เลย
         yield return new WaitForSeconds(stunDuration);
 
-        // --- จบช่วงเวลาติดสตั้น ---
         isStunned = false;
         Debug.Log("Boss: Recovered from Stun. Resuming AI...");
 
@@ -787,7 +826,7 @@ public class BossAI : MonoBehaviour
         {
             agent.isStopped = false;
         }
-    } */
+    }
 
     // ========== ฟังก์ชันรับดาเมจ (เรียกจาก PlayerAttack) ==========
     public void TakeDamage(float amount)
@@ -796,6 +835,19 @@ public class BossAI : MonoBehaviour
 
         currentHealth -= amount;
         Debug.Log($"<color=orange>Boss took {amount} damage! Current HP: {currentHealth}/{maxHealth}</color>");
+
+        // เช็คการเปลี่ยนเฟส
+        if (currentPhase == 1 && currentHealth <= maxHealth * phase2Threshold && !isDead)
+        {
+            currentPhase = 2;
+            Debug.Log("<color=red>Boss AI: Entering PHASE 2!</color>");
+            
+            // ปล่อยกระสุนรอบตัวทันทีที่เปลี่ยนเฟส!
+            PerformPhaseTransitionBurst();
+
+            // (Optional) เล่นเสียงหรือเอฟเฟกต์เปลี่ยนเฟสที่นี่ได้
+            if (powerSound != null) PlaySound(powerSound); 
+        }
 
         // เล่น Animation โดนตี
         animator.SetTrigger(animHitID);
