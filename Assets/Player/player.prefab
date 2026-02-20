@@ -545,7 +545,7 @@ MonoBehaviour:
   attackRange: 1.5
   enemyLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   attackHitDelay: 0.2
 --- !u!114 &857515957572618536
 MonoBehaviour:
