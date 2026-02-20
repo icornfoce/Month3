@@ -16,13 +16,35 @@ public class PlayerParry : MonoBehaviour
         hm = GetComponent<HealthManager>();
     }
 
+    void OnEnable()
+    {
+        isParryingState = false;
+    }
+
+    void OnDisable()
+    {
+        isParryingState = false;
+    }
+
     void Update()
     {
         if (hm != null && (hm.health <= 0)) return;
 
         // กด F เพื่อทำการ Parry
-        if (Input.GetKeyDown(KeyCode.F) && !isParryingState && (hm != null && !hm.isTakingDamage))
+        if (Input.GetKeyDown(KeyCode.F))
         {
+            if (isParryingState)
+            {
+                Debug.Log("<color=yellow>Parry BLOCKED: Already in parrying state.</color>");
+                return;
+            }
+
+            if (hm != null && hm.isTakingDamage)
+            {
+                Debug.Log("<color=red>Parry BLOCKED: Player is taking damage (Stunned).</color>");
+                return;
+            }
+
             StartCoroutine(PerformParry());
         }
     }
@@ -33,7 +55,11 @@ public class PlayerParry : MonoBehaviour
         Debug.Log("<color=cyan>Player: Parry Window STARTED</color>");
 
         // สั่งเล่นแอนิเมชัน (อย่าลืมตั้งชื่อใน Animator ให้ตรง)
-        if (anim != null) anim.SetTrigger("isParrying");
+        if (anim != null) 
+        {
+            anim.ResetTrigger("isParrying");
+            anim.SetTrigger("isParrying");
+        }
 
         // ระหว่างรอใน Window นี้ ถ้า BossAI เรียกฟังก์ชัน DealDamage จะถือว่า Parry สำเร็จ
         yield return new WaitForSeconds(parryWindow);
@@ -50,8 +76,11 @@ public class PlayerParry : MonoBehaviour
         
         if (anim != null)
         {
-            // เปลี่ยนแอนิเมชันทันที (เลือกใช้อย่างใดอย่างหนึ่ง หรือทั้งคู่)
-            anim.SetTrigger("ParrySuccess"); // ต้องมีพารามิเตอร์ชื่อนี้ใน Animator
+            // เคลียร์ trigger เก่าที่อาจจะค้างอยู่จากการกด F
+            anim.ResetTrigger("isParrying"); 
+            
+            // เปลี่ยนแอนิเมชันทันที
+            anim.SetTrigger("ParrySuccess"); 
             anim.Play("ParrySuccess", 0, 0f); // บังคับเล่นข้ามทุกอย่าง
         }
         

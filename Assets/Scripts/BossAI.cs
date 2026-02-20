@@ -847,6 +847,7 @@ public class BossAI : MonoBehaviour
 
             // ใช้ CrossFade เพื่อบังคับเปลี่ยนท่าไปที่ "Death" ทันที (ขอแค่มี State ชื่อ Death)
             animator.CrossFade("Death", 0.1f);
+            animator.SetBool(animParryHitID, false);
             Debug.Log("Boss: Force playing 'Death' animation...");
         }
 

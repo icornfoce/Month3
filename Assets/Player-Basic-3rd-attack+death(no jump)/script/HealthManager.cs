@@ -18,6 +18,16 @@ public class HealthManager : MonoBehaviour
         if (anim == null) anim = GetComponent<Animator>();
     }
 
+    void OnEnable()
+    {
+        isTakingDamage = false;
+    }
+
+    void OnDisable()
+    {
+        isTakingDamage = false;
+    }
+
     void Update()
     {
         if (isDead) return;
@@ -98,6 +108,7 @@ public class HealthManager : MonoBehaviour
         // 1. เล่นแอนิเมชันตาย
         anim.SetTrigger("Is Dead");
         anim.SetFloat("health", 0); // บังคับให้เป็น 0 เพื่อความชัวร์
+        isTakingDamage = false;
 
         // 2. หยุดแรง Rigidbody ทันที
         Rigidbody rb = GetComponent<Rigidbody>();
