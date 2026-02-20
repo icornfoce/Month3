@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Boss
   - skill
+  - FxTemporaire
   layers:
   - Default
   - TransparentFX
@@ -15,7 +16,7 @@ TagManager:
   - UI
   - Player
   - skill
-  - 
+  - Enemy
   - 
   - 
   - 
