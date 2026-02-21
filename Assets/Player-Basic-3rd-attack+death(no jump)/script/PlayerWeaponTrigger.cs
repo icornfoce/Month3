@@ -7,6 +7,11 @@ public class PlayerWeaponTrigger : MonoBehaviour
     private List<GameObject> hitTargets = new List<GameObject>();
     private Collider weaponCollider;
 
+    [Header("Hit Feedback")]
+    public GameObject hitVFXPrefab;
+    public AudioClip hitSFX;
+    public AudioSource audioSource;
+
     void Awake()
     {
         weaponCollider = GetComponent<Collider>();
@@ -15,6 +20,9 @@ public class PlayerWeaponTrigger : MonoBehaviour
             weaponCollider.isTrigger = true;
             weaponCollider.enabled = false;
         }
+
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        if (audioSource == null) audioSource = GetComponentInParent<AudioSource>();
     }
 
     public void EnableTrigger(float damage)
@@ -47,6 +55,20 @@ public class PlayerWeaponTrigger : MonoBehaviour
             hitTargets.Add(other.gameObject);
             Debug.Log($"<color=orange>Weapon Hit: {other.name}, Dealt: {currentDamage}</color>");
             boss.TakeDamage(currentDamage);
+
+            // Trigger Hit Feedback
+            if (hitVFXPrefab != null)
+            {
+                // Instantiate at the point of impact (approximate with other collider's closest point or center)
+                Vector3 hitPoint = other.ClosestPointOnBounds(transform.position);
+                GameObject vfx = Instantiate(hitVFXPrefab, hitPoint, Quaternion.identity);
+                Destroy(vfx, 2f); // Auto destroy after 2 seconds
+            }
+
+            if (audioSource != null && hitSFX != null)
+            {
+                audioSource.PlayOneShot(hitSFX);
+            }
         }
     }
 }

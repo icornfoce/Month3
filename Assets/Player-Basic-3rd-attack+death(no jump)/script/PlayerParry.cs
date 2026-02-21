@@ -10,10 +10,23 @@ public class PlayerParry : MonoBehaviour
     private Animator anim;
     private HealthManager hm;
 
+    [Header("VFX Settings")]
+    public GameObject parryWindowVFX;
+    public GameObject parrySuccessVFX;
+
+    [Header("SFX Settings")]
+    public AudioSource audioSource;
+    public AudioClip parryWindowSFX;
+    public AudioClip parrySuccessSFX;
+
     void Start()
     {
         anim = GetComponentInChildren<Animator>();
         hm = GetComponent<HealthManager>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        
+        SetVFXState(parryWindowVFX, false);
+        SetVFXState(parrySuccessVFX, false);
     }
 
     void OnEnable()
@@ -61,8 +74,13 @@ public class PlayerParry : MonoBehaviour
             anim.SetTrigger("isParrying");
         }
 
+        if (parryWindowVFX != null) SetVFXState(parryWindowVFX, true);
+        if (audioSource != null && parryWindowSFX != null) audioSource.PlayOneShot(parryWindowSFX);
+
         // ระหว่างรอใน Window นี้ ถ้า BossAI เรียกฟังก์ชัน DealDamage จะถือว่า Parry สำเร็จ
         yield return new WaitForSeconds(parryWindow);
+
+        if (parryWindowVFX != null) SetVFXState(parryWindowVFX, false);
 
         isParryingState = false;
         Debug.Log("<color=gray>Player: Parry Window ENDED</color>");
@@ -83,7 +101,35 @@ public class PlayerParry : MonoBehaviour
             anim.SetTrigger("ParrySuccess"); 
             anim.Play("ParrySuccess", 0, 0f); // บังคับเล่นข้ามทุกอย่าง
         }
+
+        if (parryWindowVFX != null) SetVFXState(parryWindowVFX, false);
+        if (parrySuccessVFX != null) StartCoroutine(ShowOneShotVFX(parrySuccessVFX));
+        if (audioSource != null && parrySuccessSFX != null) audioSource.PlayOneShot(parrySuccessSFX);
         
         Debug.Log("<color=green>Player: Parry SUCCESS Animation Triggered!</color>");
+    }
+
+    IEnumerator ShowOneShotVFX(GameObject vfx)
+    {
+        SetVFXState(vfx, true);
+        yield return new WaitForSeconds(2f); // Adjust time as needed
+        SetVFXState(vfx, false);
+    }
+
+    private void SetVFXState(GameObject vfxObj, bool active)
+    {
+        if (vfxObj == null) return;
+        if (vfxObj.activeSelf != active) vfxObj.SetActive(active);
+        ParticleSystem ps = vfxObj.GetComponent<ParticleSystem>();
+        if (ps != null)
+        {
+            if (active) { if (!ps.isPlaying) ps.Play(); }
+            else { if (ps.isPlaying) ps.Stop(true, ParticleSystemStopBehavior.StopEmitting); }
+        }
+        foreach (var cps in vfxObj.GetComponentsInChildren<ParticleSystem>())
+        {
+            if (active) { if (!cps.isPlaying) cps.Play(); }
+            else { if (cps.isPlaying) cps.Stop(true, ParticleSystemStopBehavior.StopEmitting); }
+        }
     }
 }

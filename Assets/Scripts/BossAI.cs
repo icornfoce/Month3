@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.UI; // สำหรับใช้ RawImage
 using System.Collections;
 
 [RequireComponent(typeof(NavMeshAgent))]
@@ -64,6 +65,11 @@ public class BossAI : MonoBehaviour
 
     [Header("Health Settings (ค่าพลังชีวิตบอส)")]
     public float maxHealth = 200f;
+    
+    [Header("UI Reference (RawImage)")]
+    public RawImage hpBarImage;
+    public float maxWidth = 400f;
+
     [Header("Death Settings (การตาย)")]
     public GameObject deathEffectPrefab;     // Prefab ระเบิด/ควันตอนตาย
     public float destroyDelay = 5.0f;        // เวลาที่จะทำลายซากทิ้ง (0 = ไม่ทำลาย)
@@ -131,6 +137,7 @@ public class BossAI : MonoBehaviour
     private int animHitID;
     private int animDeathID;
     private int animParryHitID;
+    private RectTransform barRect;
 
 
     private AudioSource audioSource;
@@ -191,6 +198,12 @@ public class BossAI : MonoBehaviour
         animHitID = Animator.StringToHash("Hit");
         animDeathID = Animator.StringToHash("Death");
         animParryHitID = Animator.StringToHash("isParryHit");
+
+        if (hpBarImage != null)
+        {
+            barRect = hpBarImage.GetComponent<RectTransform>();
+        }
+        UpdateHPUI();
     }
 
     void Update()
@@ -856,6 +869,17 @@ public class BossAI : MonoBehaviour
         if (currentHealth <= 0)
         {
             Die();
+        }
+
+        UpdateHPUI();
+    }
+
+    void UpdateHPUI()
+    {
+        if (barRect != null)
+        {
+            float pct = Mathf.Clamp01(currentHealth / maxHealth);
+            barRect.sizeDelta = new Vector2(pct * maxWidth, barRect.sizeDelta.y);
         }
     }
 

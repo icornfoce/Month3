@@ -37,6 +37,16 @@ public class PlayerMovement : MonoBehaviour
     [Header("Health Reference")]
     public HealthManager healthManager;
 
+    [Header("VFX Settings")]
+    public GameObject runVFX;
+    public GameObject dodgeVFX;
+
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip walkSFX;
+    public AudioClip runSFX;
+    public AudioClip dodgeSFX;
+
     // ตัวแปรที่ใช้คำนวณความเร็วและการหมุน (แก้ Error CS0103)
     private float turnSmoothVelocity;
     private float speedSmoothVelocity;
@@ -57,6 +67,10 @@ public class PlayerMovement : MonoBehaviour
 
         if (playerAttack == null) playerAttack = GetComponent<PlayerAttack>();
         if (healthManager == null) healthManager = GetComponent<HealthManager>();
+
+        // Ensure VFX are off at start
+        SetVFXState(runVFX, false);
+        SetVFXState(dodgeVFX, false);
     }
 
     void Update()
@@ -131,6 +145,47 @@ public class PlayerMovement : MonoBehaviour
         {
             anim.SetFloat("Velocity Y", targetAnimSpeed, 0.1f, Time.deltaTime);
         }
+
+        // Handle Run VFX
+        if (runVFX != null)
+        {
+            bool shouldShowRunVFX = isRunning && movementInput.magnitude > 0.11f && !isDodging && !isAttacking;
+            SetVFXState(runVFX, shouldShowRunVFX);
+        }
+
+        // Handle Run Audio
+        if (audioSource != null)
+        {
+            bool isMoving = movementInput.magnitude > 0.11f && !isDodging && !isAttacking;
+            
+            if (isMoving)
+            {
+                AudioClip targetClip = isRunning ? runSFX : walkSFX;
+
+                if (targetClip != null)
+                {
+                    if (!audioSource.isPlaying || audioSource.clip != targetClip)
+                    {
+                        audioSource.clip = targetClip;
+                        audioSource.loop = true;
+                        audioSource.Play();
+                    }
+                }
+                else
+                {
+                    audioSource.Stop();
+                }
+            }
+            else
+            {
+                // Stop audio if not moving (and not playing a one-shot like dodge which uses PlayOneShot)
+                // Note: PlayOneShot doesn't change audioSource.clip, so we check if the looping clip is movement sfx
+                if (audioSource.isPlaying && (audioSource.clip == runSFX || audioSource.clip == walkSFX))
+                {
+                    audioSource.Stop();
+                }
+            }
+        }
     }
 
     IEnumerator PerformDodgeRootMotion()
@@ -138,10 +193,19 @@ public class PlayerMovement : MonoBehaviour
         canDodge = false;
         IsInvincible = true;
 
-        // หันหน้าไปทิศที่จะหลบก่อนเริ่มพุ่ง
+        // ยันหน้าไปทิศที่จะหลบก่อนเริ่มพุ่ง
         if (movementInput.magnitude > 0.1f)
         {
             transform.rotation = Quaternion.LookRotation(GetMoveDirection());
+        }
+
+        // เปิด Dodge VFX
+        SetVFXState(dodgeVFX, true);
+
+        // เล่นเสียง Dodge
+        if (audioSource != null && dodgeSFX != null)
+        {
+            audioSource.PlayOneShot(dodgeSFX);
         }
 
         // เปิด Root Motion ให้แอนิเมชันพาตัวละครขยับ (Not In-place)
@@ -162,6 +226,9 @@ public class PlayerMovement : MonoBehaviour
             yield return new WaitForSeconds(remainingLockout); 
         }
 
+        // ปิด Dodge VFX
+        SetVFXState(dodgeVFX, false);
+
         // ปลดล็อคการเคลื่อนที่ทันที
         isDodgeLockingMovement = false;
         anim.applyRootMotion = false; 
@@ -173,6 +240,41 @@ public class PlayerMovement : MonoBehaviour
             yield return new WaitForSeconds(remainingCooldown);
         }
         canDodge = true;
+    }
+
+    private void SetVFXState(GameObject vfxObj, bool active)
+    {
+        if (vfxObj == null) return;
+
+        // Ensure the GameObject itself is active/inactive
+        if (vfxObj.activeSelf != active) vfxObj.SetActive(active);
+
+        ParticleSystem ps = vfxObj.GetComponent<ParticleSystem>();
+        if (ps != null)
+        {
+            if (active)
+            {
+                if (!ps.isPlaying) ps.Play();
+            }
+            else
+            {
+                if (ps.isPlaying) ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            }
+        }
+        
+        // Also check children for ParticleSystems
+        ParticleSystem[] childPS = vfxObj.GetComponentsInChildren<ParticleSystem>();
+        foreach (var cps in childPS)
+        {
+            if (active)
+            {
+                if (!cps.isPlaying) cps.Play();
+            }
+            else
+            {
+                if (cps.isPlaying) cps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            }
+        }
     }
 
     Vector3 GetMoveDirection()
