@@ -2048,6 +2048,8 @@ MonoBehaviour:
   attackHitDelay: 1.2
   powerHitDelay: 1
   maxHealth: 200
+  hpBarImage: {fileID: 0}
+  maxWidth: 100
   deathEffectPrefab: {fileID: 4593184484909914552, guid: 2e1e9506f5904a64b81744324fb7cd50, type: 3}
   destroyDelay: 5
   attackSound: {fileID: 0}
@@ -2064,6 +2066,8 @@ MonoBehaviour:
   rainSoundDelay: 0.5
   homingSoundDelay: 0.5
   burstSoundDelay: 0.8
+  currentPhase: 1
+  phase2Threshold: 0.5
   currentHealth: 0
   isDead: 0
   playerTag: Player
@@ -2232,6 +2236,8 @@ MonoBehaviour:
   attackHitDelay: 1.08
   powerHitDelay: 0.8
   maxHealth: 200
+  hpBarImage: {fileID: 0}
+  maxWidth: 400
   deathEffectPrefab: {fileID: 0}
   destroyDelay: 5
   attackSound: {fileID: 0}
@@ -2248,6 +2254,8 @@ MonoBehaviour:
   rainSoundDelay: 0.5
   homingSoundDelay: 0.5
   burstSoundDelay: 0.8
+  currentPhase: 1
+  phase2Threshold: 0.5
   currentHealth: 0
   isDead: 0
   playerTag: Player
@@ -5786,6 +5794,12 @@ MonoBehaviour:
   staminaManager: {fileID: 0}
   playerAttack: {fileID: 7725911312567449456}
   healthManager: {fileID: 0}
+  runVFX: {fileID: 0}
+  dodgeVFX: {fileID: 0}
+  audioSource: {fileID: 0}
+  walkSFX: {fileID: 0}
+  runSFX: {fileID: 0}
+  dodgeSFX: {fileID: 0}
 --- !u!4 &7615026381969028548
 Transform:
   m_ObjectHideFlags: 0
@@ -5992,7 +6006,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 521a09e548da56f40872342db7576af9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
-  lightDamage: 15
+  lightDamage: 40
   heavyDamage: 30
   attackPoint: {fileID: 9026625123307156237}
   attackRange: 1.5
@@ -6000,10 +6014,19 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   attackHitDelay: 0.2
+  lightAttackVFXDelay: 0
+  heavyAttackVFXDelay: 0.15
+  lightAttackVFXDuration: 0.5
+  heavyAttackVFXDuration: 0.7
   staminaManager: {fileID: 0}
   playerMovement: {fileID: 0}
   healthManager: {fileID: 0}
   weaponTrigger: {fileID: 9026625123307156238}
+  lightAttackVFX: {fileID: 0}
+  heavyAttackVFX: {fileID: 0}
+  audioSource: {fileID: 0}
+  lightAttackSFX: {fileID: 0}
+  heavyAttackSFX: {fileID: 0}
 --- !u!1 &7738663755587505320
 GameObject:
   m_ObjectHideFlags: 0
@@ -6523,7 +6546,7 @@ Transform:
   m_GameObject: {fileID: 1072303150271148021}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: 0, y: 0.535, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6541,7 +6564,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: def4ac1cd24161741972c93b1ac3080a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthManager
+  maxHealth: 100
   health: 100
+  hpBarImage: {fileID: 0}
+  maxWidth: 200
+  gameOverCG: {fileID: 0}
+  gameOverAudio: {fileID: 0}
+  gameOverFadeSpeed: 0.5
   takeDamageDuration: 0.5
   isTakingDamage: 0
 --- !u!1 &8435895908540317348
@@ -6603,6 +6632,7 @@ GameObject:
   - component: {fileID: 1323398287052008009}
   - component: {fileID: 1808445151561542708}
   - component: {fileID: 2186993801288502470}
+  - component: {fileID: 9051649502978950982}
   m_Layer: 0
   m_Name: patty
   m_TagString: Boss
@@ -6681,6 +6711,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerParry
   parryWindow: 0.4
   isParryingState: 1
+  parryWindowVFX: {fileID: 0}
+  parrySuccessVFX: {fileID: 0}
+  audioSource: {fileID: 0}
+  parryWindowSFX: {fileID: 0}
+  parrySuccessSFX: {fileID: 0}
 --- !u!4 &8592242562955388276
 Transform:
   m_ObjectHideFlags: 0
@@ -7010,6 +7045,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 694abec2bd7a57d4d84ae16dc3606b31, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponTrigger
+  hitVFXPrefab: {fileID: 0}
+  hitSFX: {fileID: 0}
+  audioSource: {fileID: 0}
 --- !u!1 &9046889999562191444
 GameObject:
   m_ObjectHideFlags: 0
@@ -7044,6 +7082,27 @@ Transform:
   - {fileID: 8404988883918941807}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &9051649502978950982
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8563097641101467135}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.68, y: 4, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &9065141449714127063
 GameObject:
   m_ObjectHideFlags: 0
