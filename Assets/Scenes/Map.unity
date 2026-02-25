@@ -503,6 +503,8 @@ PlayableDirector:
     value: {fileID: 3311421061186956684}
   - key: {fileID: -4743125110158253936, guid: 01cf0e2b29a00e444a63eb8f145ce014, type: 2}
     value: {fileID: 6331840256925914444}
+  - key: {fileID: 4099877042701044197, guid: 01cf0e2b29a00e444a63eb8f145ce014, type: 2}
+    value: {fileID: 2025516651}
   m_ExposedReferences:
     m_References: []
 --- !u!1 &238685260
@@ -3248,6 +3250,7 @@ GameObject:
   - component: {fileID: 1846922367}
   - component: {fileID: 1846922366}
   - component: {fileID: 1846922365}
+  - component: {fileID: 1846922369}
   m_Layer: 5
   m_Name: PlayerDead
   m_TagString: Untagged
@@ -3338,6 +3341,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!225 &1846922369
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1846922363}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1901396982
 GameObject:
   m_ObjectHideFlags: 0
@@ -4329,8 +4344,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6331840256925914444}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.45195252, z: 0, w: 0.89204204}
-  m_LocalPosition: {x: 461.83, y: 301.99594, z: 327.25}
+  m_LocalRotation: {x: -0, y: -0.62700915, z: -0, w: 0.7790119}
+  m_LocalPosition: {x: 466.06836, y: 301.99594, z: 327.97388}
   m_LocalScale: {x: 2.317, y: 2.317, z: 2.317}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4338,7 +4353,7 @@ Transform:
   - {fileID: 8591748972553265921}
   - {fileID: 1754792563676566178}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -53.738, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -77.66, z: 0}
 --- !u!1 &359450272689187453
 GameObject:
   m_ObjectHideFlags: 0
@@ -6348,7 +6363,7 @@ MonoBehaviour:
   health: 100
   hpBarImage: {fileID: 1124638804}
   maxWidth: 315
-  gameOverCG: {fileID: 0}
+  gameOverCG: {fileID: 1846922369}
   gameOverAudio: {fileID: 0}
   gameOverFadeSpeed: 0.5
   takeDamageDuration: 0.5
