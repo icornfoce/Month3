@@ -54,7 +54,18 @@ public class PlayerAttack : MonoBehaviour
         // พยายามหา WeaponTrigger ถ้ายังไม่ได้ลากใส่
         if (weaponTrigger == null) weaponTrigger = GetComponentInChildren<PlayerWeaponTrigger>();
         
-        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        if (audioSource == null) 
+        {
+            // สร้างลำโพงใหม่ของตัวเองสำหรับเสียงตีโดยเฉพาะ จะได้ไม่ตีกับเสียงเดิน
+            GameObject attackAudioObj = new GameObject("AttackAudio");
+            attackAudioObj.transform.SetParent(this.transform);
+            attackAudioObj.transform.localPosition = Vector3.zero;
+
+            audioSource = attackAudioObj.AddComponent<AudioSource>();
+            audioSource.spatialBlend = 0f; // 2D sound
+            audioSource.playOnAwake = false;
+            audioSource.loop = false; // ป้องกันเสียงลูปมั่วซั่ว
+        }
 
         // Ensure VFX are off at start
         SetVFXState(lightAttackVFX, false);
@@ -109,15 +120,32 @@ public class PlayerAttack : MonoBehaviour
 
     IEnumerator TriggerAttackEffects(bool isLight)
     {
+        AudioClip sfx = isLight ? lightAttackSFX : heavyAttackSFX;
+
+        // รอดีเลย์ตามที่ตั้งหน้า Inspector เพื่อให้ "เสียง" และ "แสงดาบ" ออกมาตรงกับจังหวะฟันจริงๆ ในแอนิเมชัน
         float delay = isLight ? lightAttackVFXDelay : heavyAttackVFXDelay;
         if (delay > 0) yield return new WaitForSeconds(delay);
 
+        Debug.Log($"[AttackSFX] Triggering {(isLight ? "Light" : "Heavy")} Attack.");
+
+        // เปิดเอฟเฟกต์แสงดาบ (VFX)
         GameObject vfx = isLight ? lightAttackVFX : heavyAttackVFX;
-        AudioClip sfx = isLight ? lightAttackSFX : heavyAttackSFX;
-
         if (vfx != null) SetVFXState(vfx, true);
-        if (audioSource != null && sfx != null) audioSource.PlayOneShot(sfx);
 
+        // เล่นเสียงฟันดาบ
+        if (audioSource != null && sfx != null) 
+        {
+            audioSource.Stop(); // สังเวยหางเสียงเก่าทิ้งเพื่อไม่ให้รกหู
+            
+            // สุ่มความทุ้มแหลมของเสียงนิดนึง (Pitch 0.9 - 1.1) ทำให้เหมือนการฟันแต่ละครั้งใช้แรงไม่เท่ากัน ฟังดูสมจริงขึ้น
+            audioSource.pitch = Random.Range(0.9f, 1.1f);
+            audioSource.loop = false; // บังคับไม่ให้เสียงตีวนลูปซ้ำเอง
+            
+            audioSource.clip = sfx;
+            audioSource.Play(); 
+        }
+
+        // รอจนเอฟเฟกต์หมดเวลาแล้วค่อยปิด
         float duration = isLight ? lightAttackVFXDuration : heavyAttackVFXDuration;
         yield return new WaitForSeconds(duration);
 
