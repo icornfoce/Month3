@@ -53,6 +53,8 @@ public class PlayerMovement : MonoBehaviour
     private float currentSpeed;
     private Vector3 movementInput;
     private bool isRunning;
+    
+    private float stepTimer = 0f; // สำหรับคูลดาวน์รอยเท้าเพื่อไม่ให้เสียงตัดกัน
 
     void Start()
     {
@@ -67,6 +69,23 @@ public class PlayerMovement : MonoBehaviour
 
         if (playerAttack == null) playerAttack = GetComponent<PlayerAttack>();
         if (healthManager == null) healthManager = GetComponent<HealthManager>();
+
+        if (audioSource == null) 
+        {
+            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null) audioSource = GetComponentInChildren<AudioSource>();
+            if (audioSource == null) 
+            {
+                // สร้าง Audio ลูกเพิ่มเฉพาะสำหรับเสียงเดิน จะได้ไม่ไปกวน/ทับเสียงฟันดาบ
+                GameObject moveObj = new GameObject("MovementAudio");
+                moveObj.transform.SetParent(this.transform);
+                moveObj.transform.localPosition = Vector3.zero;
+                
+                audioSource = moveObj.AddComponent<AudioSource>();
+                audioSource.spatialBlend = 0f; // 2D sound เพื่อให้ได้ยินชัดเจน
+                audioSource.playOnAwake = false;
+            }
+        }
 
         // Ensure VFX are off at start
         SetVFXState(runVFX, false);
@@ -164,23 +183,20 @@ public class PlayerMovement : MonoBehaviour
 
                 if (targetClip != null)
                 {
-                    if (!audioSource.isPlaying || audioSource.clip != targetClip)
+                    // เปลี่ยนเสียงและเล่นวนลูปไปเรื่อยๆ จนกว่าจะหยุด
+                    if (audioSource.clip != targetClip || !audioSource.isPlaying)
                     {
                         audioSource.clip = targetClip;
                         audioSource.loop = true;
+                        audioSource.pitch = 1f; // ทำให้เสียงเป็นปกติ (ไม่สโลว์)
                         audioSource.Play();
                     }
-                }
-                else
-                {
-                    audioSource.Stop();
                 }
             }
             else
             {
-                // Stop audio if not moving (and not playing a one-shot like dodge which uses PlayOneShot)
-                // Note: PlayOneShot doesn't change audioSource.clip, so we check if the looping clip is movement sfx
-                if (audioSource.isPlaying && (audioSource.clip == runSFX || audioSource.clip == walkSFX))
+                // ถ้าหยุดเดิน ให้หยุดเสียง
+                if (audioSource.isPlaying)
                 {
                     audioSource.Stop();
                 }
