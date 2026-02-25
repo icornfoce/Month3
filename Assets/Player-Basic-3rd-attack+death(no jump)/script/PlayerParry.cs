@@ -103,18 +103,25 @@ public class PlayerParry : MonoBehaviour
         }
 
         if (parryWindowVFX != null) SetVFXState(parryWindowVFX, false);
-        if (parrySuccessVFX != null) StartCoroutine(ShowOneShotVFX(parrySuccessVFX));
+        
+        // เปลี่ยนจาก Instantiate เป็นเปิด/ปิด (Toggle) ตามที่ขอ
+        if (parrySuccessVFX != null) 
+        {
+            StartCoroutine(ShowSuccessVFX());
+        }
+
         if (audioSource != null && parrySuccessSFX != null) audioSource.PlayOneShot(parrySuccessSFX);
         
         Debug.Log("<color=green>Player: Parry SUCCESS Animation Triggered!</color>");
     }
 
-    IEnumerator ShowOneShotVFX(GameObject vfx)
+    IEnumerator ShowSuccessVFX()
     {
-        SetVFXState(vfx, true);
-        yield return new WaitForSeconds(2f); // Adjust time as needed
-        SetVFXState(vfx, false);
+        SetVFXState(parrySuccessVFX, true);
+        yield return new WaitForSeconds(1.0f); // แสดงผล 1 วินาทีแล้วปิด
+        SetVFXState(parrySuccessVFX, false);
     }
+
 
     private void SetVFXState(GameObject vfxObj, bool active)
     {
