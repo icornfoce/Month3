@@ -49,12 +49,6 @@ public class BossAI : MonoBehaviour
 
     public float homingRange = 15f;         
 
-    [Header("Burst Skill Settings (ระเบิดรอบทิศ)")]
-    public float burstCooldown = 25f;       
-    public int burstCount = 12;             
-    public float burstSpeed = 5f;          // ระเบิดช้าลงอีก
-    public float burstDamage = 20f;         // ดาเมจ
-    public float burstRange = 8f;           // ระยะเริ่มใช้ (ใกล้-กลาง)
 
     [Header("Damage Settings (ค่าดาเมจ)")]
     public float attackDamage = 15f;        // ดาเมจท่าปกติ
@@ -88,7 +82,6 @@ public class BossAI : MonoBehaviour
     public AudioClip dashSound;     // เสียง Dash
     public AudioClip rainSound;     // เสียง Rain Proj
     public AudioClip homingSound;   // เสียง Homing
-    public AudioClip burstSound;    // เสียง Burst
     public AudioClip hitSound;      // เสียงโดนตี/Parry
     public AudioClip deathSound;    // เสียงตาย
 
@@ -98,7 +91,6 @@ public class BossAI : MonoBehaviour
     public float dashSoundDelay = 0.1f;     // ดีเลย์เสียง Dash
     public float rainSoundDelay = 0.5f;     // ดีเลย์เสียง Rain
     public float homingSoundDelay = 0.5f;   // ดีเลย์เสียง Homing
-    public float burstSoundDelay = 0.8f;    // ดีเลย์เสียง Burst
     [Header("Phase Settings")]
     public int currentPhase = 1;
     [Range(0.1f, 0.9f)]
@@ -131,7 +123,6 @@ public class BossAI : MonoBehaviour
     private float lastDashTime;
     private float lastRainTime;
     private float lastHomingTime;
-    private float lastBurstTime;
     private bool isAttacking = false;
     private bool isUsingSkill = false;      // กำลังใช้สกิลอยู่
     private bool lastAttackWasPower = false; // เก็บว่าท่าล่าสุดเป็น Power ไหม
@@ -298,13 +289,6 @@ public class BossAI : MonoBehaviour
             if (distance <= dashRange && distance >= dashMinRange && Time.time >= lastDashTime + dashCooldown)
             {
                 PerformDashAttack();
-                return;
-            }
-
-            // 2. ระเบิดรอบทิศ (Burst Skill)
-            if (distance <= burstRange && Time.time >= lastBurstTime + burstCooldown && projectilePrefab != null)
-            {
-                PerformBurstSkill();
                 return;
             }
 
@@ -681,110 +665,7 @@ public class BossAI : MonoBehaviour
 
 
 
-    // ========== Burst Skill (ระเบิดรอบทิศ) ==========
-    void PerformBurstSkill()
-    {
-        lastBurstTime = Time.time;
-        isUsingSkill = true;
-        Debug.Log("Boss: Burst Skill Start!");
-        PlaySound(burstSound, burstSoundDelay); // เล่นเสียง Burst
-        currentSkillCoroutine = StartCoroutine(BurstSequence());
-    }
 
-    IEnumerator BurstSequence()
-    {
-        if (agent.isOnNavMesh) agent.isStopped = true;
-        agent.velocity = Vector3.zero;
-
-        // หันหน้าหา Player ก่อนชาร์จ
-        FaceTarget(player.position);
-        
-        // เล่น Animation
-        animator.SetTrigger(animPowerID);
-
-        // รอจังหวะชาร์จ (1.5 วินาที)
-        float chargeTime = 1.5f;
-        float t = 0;
-        while (t < chargeTime)
-        {
-             if (isDead) { isUsingSkill = false; yield break; }
-             // FaceTarget(player.position); // จะให้หมุนตาม หรือยืนนิ่งๆ ก้ได้ (ยืนนิ่งเท่กว่าตอนระเบิด)
-             t += Time.deltaTime;
-             yield return null;
-        }
-
-        if (projectilePrefab != null)
-        {
-            // คำนวณจุดปล่อย (รอบตัว)
-            Vector3 center = transform.position + Vector3.up * spawnHeight;
-            if (rainSpawnPoint != null) center = rainSpawnPoint.position;
-
-            float angleStep = 360f / burstCount;
-            
-            for (int i = 0; i < burstCount; i++)
-            {
-                float angle = i * angleStep;
-                // หมุนทิศทางรอบแกน Y
-                Quaternion rot = Quaternion.Euler(0, angle, 0);
-                Vector3 dir = rot * transform.forward; // อิงจากหน้าบอส (หรือ Vector3.forward ก็ได้ เพราะครบวงกลมอยู่ดี)
-
-                GameObject proj = Instantiate(projectilePrefab, center, Quaternion.LookRotation(dir));
-                BossProjectile bp = proj.GetComponent<BossProjectile>();
-                if (bp != null)
-                {
-                    bp.speed = burstSpeed * globalSpeedMultiplier; // Apply multiplier
-                    bp.damage = burstDamage;
-                    bp.hoverDuration = 0f; // ยิงเลย
-                    bp.target = null;      // ไม่ติดตาม
-                    bp.isHoming = false;   // ยิงตรงๆ
-                    bp.lifetimeAfterLaunch = 5f;
-                    bp.Initialize();
-                }
-            }
-            Debug.Log("Boss: BOOM! Burst Fired.");
-        }
-
-        yield return new WaitForSeconds(1.0f); // ค้างท่านิดนึง
-
-        Debug.Log("Boss: Burst Skill Complete. Recovering...");
-        yield return new WaitForSeconds(2.0f); // **เพิ่มช่องว่างยาวหน่อยเพราะท่าใหญ่**
-
-        isUsingSkill = false;
-        if (!isDead && agent.isOnNavMesh) agent.isStopped = false;
-    }
-
-    // ========== ท่าพิเศษตอนเปลี่ยนเฟส (ปล่อยของรอบตัวเยอะๆ) ==========
-    void PerformPhaseTransitionBurst()
-    {
-        if (projectilePrefab == null) return;
-
-        Debug.Log("<color=red>Boss AI: PHASE 2 TRANSITION BURST!</color>");
-
-        // คำนวณจุดปล่อย
-        Vector3 center = (rainSpawnPoint != null) ? rainSpawnPoint.position : (transform.position + Vector3.up * spawnHeight);
-        
-        int burstCountTransition = 24; // ปล่อย 24 ลูกรอบตัว
-        float angleStep = 360f / burstCountTransition;
-
-        for (int i = 0; i < burstCountTransition; i++)
-        {
-            float angle = i * angleStep;
-            Quaternion rot = Quaternion.Euler(0, angle, 0);
-            Vector3 dir = rot * transform.forward;
-
-            GameObject proj = Instantiate(projectilePrefab, center, Quaternion.LookRotation(dir));
-            BossProjectile bp = proj.GetComponent<BossProjectile>();
-            if (bp != null)
-            {
-                // ตั้งค่าเพื่อให้ดูอลังการขึ้น
-                bp.speed = burstSpeed * 1.25f * globalSpeedMultiplier; 
-                bp.damage = burstDamage;
-                bp.hoverDuration = 1.0f; // ให้ลอยค้าง 1 วินาทีก่อนพุ่ง (เท่มาก!)
-                bp.target = null;
-                bp.Initialize();
-            }
-        }
-    }
 
 
 
@@ -892,9 +773,6 @@ public class BossAI : MonoBehaviour
         {
             currentPhase = 2;
             Debug.Log("<color=red>Boss AI: Entering PHASE 2!</color>");
-            
-            // ปล่อยกระสุนรอบตัวทันทีที่เปลี่ยนเฟส!
-            PerformPhaseTransitionBurst();
 
             // (Optional) เล่นเสียงหรือเอฟเฟกต์เปลี่ยนเฟสที่นี่ได้
             if (powerSound != null) PlaySound(powerSound); 
