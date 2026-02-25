@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI; // สำหรับใช้ RawImage
+using UnityEngine.SceneManagement; // สำหรับจัดการคำสั่งเกี่ยวกับโหลดด่าน/รีสตาร์ท
 
 public class HealthManager : MonoBehaviour
 {
@@ -45,7 +46,11 @@ public class HealthManager : MonoBehaviour
             gameOverCG.blocksRaycasts = false;
             gameOverCG.interactable = false;
         }
-        if (gameOverAudio != null) gameOverAudio.volume = 0f;
+        if (gameOverAudio != null && gameOverAudio.gameObject.scene.IsValid()) 
+        {
+            gameOverAudio.Stop();
+            gameOverAudio.volume = 1f;
+        }
     }
 
     void OnEnable()
@@ -159,7 +164,11 @@ public class HealthManager : MonoBehaviour
 
         Debug.Log("Game Over: Player is Dead");
 
-        // 4. แสดงหน้าจอ Game Over แบบ Fade-in
+        // 4. แสดงเข็มทิศเมาส์ให้กดปุ่ม Restart ได้
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        // 5. แสดงหน้าจอ Game Over แบบ Fade-in
         if (gameOverCG != null)
         {
             StartCoroutine(ShowGameOverURoutine());
@@ -168,14 +177,36 @@ public class HealthManager : MonoBehaviour
 
     private System.Collections.IEnumerator ShowGameOverURoutine()
     {
-        if (gameOverAudio != null) gameOverAudio.Play();
+        if (gameOverAudio != null) 
+        {
+            if (gameOverAudio.gameObject.scene.IsValid() && gameOverAudio.gameObject.activeInHierarchy)
+            {
+                gameOverAudio.volume = 1f;
+                gameOverAudio.loop = true; // เปิดให้วนลูป
+                gameOverAudio.Play();
+            }
+            else if (gameOverAudio.clip != null)
+            {
+                // Instantiate a temporary game object to play the sound properly in 2D
+                GameObject tempAudioObj = new GameObject("TempGameOverAudio");
+                AudioSource tempSource = tempAudioObj.AddComponent<AudioSource>();
+                tempSource.clip = gameOverAudio.clip;
+                tempSource.spatialBlend = 0f; // 2D sound
+                tempSource.volume = 1f;
+                tempSource.loop = true; // เปิดให้วนลูป
+                // copy from original if needed
+                tempSource.outputAudioMixerGroup = gameOverAudio.outputAudioMixerGroup;
+                
+                tempSource.Play();
+                // ลบ Destroy ออกเพื่อปล่อยให้เสียงเล่นวนลูปไปเรื่อยๆ จนกว่าจะโหลด Scene ใหม่
+            }
+        }
 
         float currentAlpha = 0f;
         while (currentAlpha < 1f)
         {
             currentAlpha += Time.deltaTime * gameOverFadeSpeed;
             if (gameOverCG != null) gameOverCG.alpha = currentAlpha;
-            if (gameOverAudio != null) gameOverAudio.volume = currentAlpha;
             yield return null;
         }
 
@@ -185,7 +216,15 @@ public class HealthManager : MonoBehaviour
             gameOverCG.blocksRaycasts = true;
             gameOverCG.interactable = true;
         }
-        if (gameOverAudio != null) gameOverAudio.volume = 1f;
+    }
+
+    // ฟังก์ชันสำหรับผูกกับปุ่ม Restart ใน UI
+    public void RestartGame()
+    {
+        // สั่งโหลด Scene ชื่อเดียวกับฉากปัจจุบันเพื่อเริ่มเล่นใหม่
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        // ทำให้เกมเดินเวลาเป็นปกติ เผื่อมีการหยุดเวลาเกิดขึ้น
+        Time.timeScale = 1f;
     }
 
     void UpdateHPUI()
