@@ -100,6 +100,17 @@ public class BossAI : MonoBehaviour
     public bool isDead = false;
     private bool hasDied = false; // ตัวเช็คว่าตายจริงหรือยัง (กันซ้ำ)
 
+    [Header("Charge Effect Settings")]
+    public GameObject chargingEffectPrefab;
+    public Transform chargingEffectSpawnPoint;
+    private GameObject activeChargingEffect;
+
+    [Header("Phase 2 Transformation Settings")]
+    public GameObject phase2TransformationVFX;
+    public GameObject phase2ContinuousVFXPrefab;
+    public string phase2TriggerName = "Phase2";
+    private GameObject m_activePhase2ContinuousVFX;
+
     /*[Header("Jump Settings (ตั้งค่ากระโดด)")]
     public float jumpForce = 5.0f;          // แรงกระโดด
     public bool enableJumping = true;
@@ -347,6 +358,7 @@ public class BossAI : MonoBehaviour
         isUsingSkill = true;
         Debug.Log("Boss: Dash Attack! — Charging at Player!");
         PlaySound(dashSound, dashSoundDelay); // เล่นเสียง Dash
+        ShowChargingEffect(true);
         currentSkillCoroutine = StartCoroutine(DashAttackSequence());
     }
 
@@ -398,6 +410,8 @@ public class BossAI : MonoBehaviour
             yield return null;
         }
 
+        ShowChargingEffect(false);
+
         // === Phase 2: ถึงตัวแล้ว → เล่น Animation ตี ===
         FaceTargetInstant(player.position);
         animator.SetTrigger(animAttackID);
@@ -429,6 +443,27 @@ public class BossAI : MonoBehaviour
         if (!isDead && agent.isOnNavMesh)
         {
             agent.isStopped = false;
+        }
+    }
+
+    // Helper function to manage charging VFX
+    void ShowChargingEffect(bool show)
+    {
+        if (show)
+        {
+            if (activeChargingEffect == null && chargingEffectPrefab != null)
+            {
+                activeChargingEffect = Instantiate(chargingEffectPrefab, chargingEffectSpawnPoint != null ? chargingEffectSpawnPoint : transform);
+                activeChargingEffect.transform.localPosition = Vector3.zero;
+            }
+        }
+        else
+        {
+            if (activeChargingEffect != null)
+            {
+                Destroy(activeChargingEffect);
+                activeChargingEffect = null;
+            }
         }
     }
 
@@ -477,6 +512,8 @@ public class BossAI : MonoBehaviour
         yield return null;
         FaceTarget(player.position);
 
+        ShowChargingEffect(true);
+
         // เล่น Animation Use Power
         animator.SetTrigger(animPowerID);
 
@@ -489,6 +526,8 @@ public class BossAI : MonoBehaviour
             rainTimer += Time.deltaTime;
             yield return null;
         }
+
+        ShowChargingEffect(false);
 
         // สุ่มจำนวนรอบ 1-3 รอบ
         int rounds = Random.Range(1, 4);
@@ -602,6 +641,8 @@ public class BossAI : MonoBehaviour
         // เล่นท่าเดียวกับ Rain (Use Power)
         animator.SetTrigger(animPowerID);
 
+        ShowChargingEffect(true);
+
         // รอ Animation
         float waitTimer = 0f;
         while (waitTimer < 1.0f)
@@ -611,6 +652,8 @@ public class BossAI : MonoBehaviour
             waitTimer += Time.deltaTime;
             yield return null;
         }
+
+        ShowChargingEffect(false);
 
         // ยิงกระสุนทีละลูก (ยิง 3 ลูกเว้นช่วงนิดหน่อย)
         for (int i = 0; i < homingCount; i++)
@@ -721,6 +764,7 @@ public class BossAI : MonoBehaviour
         isAttacking = false;
         StopAllCoroutines();
         currentSkillCoroutine = null;
+        ShowChargingEffect(false);
 
         if (agent != null && agent.isOnNavMesh)
         {
@@ -773,6 +817,27 @@ public class BossAI : MonoBehaviour
         {
             currentPhase = 2;
             Debug.Log("<color=red>Boss AI: Entering PHASE 2!</color>");
+
+            // --- Phase 2 Transformation Logic ---
+            
+            // 1. One-time transformation VFX
+            if (phase2TransformationVFX != null)
+            {
+                Instantiate(phase2TransformationVFX, transform.position + Vector3.up, Quaternion.identity);
+            }
+
+            // 2. Continuous Phase 2 Aura
+            if (phase2ContinuousVFXPrefab != null && m_activePhase2ContinuousVFX == null)
+            {
+                m_activePhase2ContinuousVFX = Instantiate(phase2ContinuousVFXPrefab, transform);
+                m_activePhase2ContinuousVFX.transform.localPosition = Vector3.up; // Spawn slightly up from base
+            }
+
+            // 3. Animation Trigger
+            if (!string.IsNullOrEmpty(phase2TriggerName))
+            {
+                animator.SetTrigger(phase2TriggerName);
+            }
 
             // (Optional) เล่นเสียงหรือเอฟเฟกต์เปลี่ยนเฟสที่นี่ได้
             if (powerSound != null) PlaySound(powerSound); 

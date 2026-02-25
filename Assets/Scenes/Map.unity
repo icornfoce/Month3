@@ -119,6 +119,37 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &71227043
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 71227044}
+  m_Layer: 8
+  m_Name: piont
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &71227044
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 71227043}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 323869394256883152}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &110637086
 GameObject:
   m_ObjectHideFlags: 0
@@ -4248,11 +4279,6 @@ MonoBehaviour:
   homingTurnSpeed: 0.5
   homingDuration: 8
   homingRange: 15
-  burstCooldown: 18
-  burstCount: 12
-  burstSpeed: 5
-  burstDamage: 20
-  burstRange: 8
   attackDamage: 15
   powerDamage: 30
   attackHitDelay: 1.2
@@ -4272,7 +4298,6 @@ MonoBehaviour:
   dashSound: {fileID: 0}
   rainSound: {fileID: 0}
   homingSound: {fileID: 0}
-  burstSound: {fileID: 0}
   hitSound: {fileID: 0}
   deathSound: {fileID: 0}
   attackSoundDelay: 0.2
@@ -4280,11 +4305,15 @@ MonoBehaviour:
   dashSoundDelay: 0.1
   rainSoundDelay: 0.5
   homingSoundDelay: 0.5
-  burstSoundDelay: 0.8
   currentPhase: 1
   phase2Threshold: 0.5
   currentHealth: 0
   isDead: 0
+  chargingEffectPrefab: {fileID: 100010, guid: 5bb3ae44215754a4b8d9a94ad088d0fe, type: 3}
+  chargingEffectSpawnPoint: {fileID: 71227044}
+  phase2TransformationVFX: {fileID: 71227043}
+  phase2ContinuousVFXPrefab: {fileID: 100000, guid: be5912b8efa97f745a577d20ecc27fc1, type: 3}
+  phase2TriggerName: Phase2
   playerTag: Player
   stunDuration: 3
   isStunned: 0
@@ -4352,6 +4381,7 @@ Transform:
   - {fileID: 7158136629417164072}
   - {fileID: 8591748972553265921}
   - {fileID: 1754792563676566178}
+  - {fileID: 71227044}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -77.66, z: 0}
 --- !u!1 &359450272689187453
