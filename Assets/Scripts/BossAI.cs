@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI; // สำหรับใช้ RawImage
+using TMPro; // สำหรับใช้ TextMeshPro
 using System.Collections;
 
 [RequireComponent(typeof(NavMeshAgent))]
@@ -66,9 +67,16 @@ public class BossAI : MonoBehaviour
     [Header("Health Settings (ค่าพลังชีวิตบอส)")]
     public float maxHealth = 200f;
     
-    [Header("UI Reference (RawImage)")]
+    [Header("UI Reference (Enhanced)")]
+    public string bossDisplayName = "Ancient Boss";
+    public TextMeshProUGUI bossNameText;
     public RawImage hpBarImage;
+    public CanvasGroup bossUIContainer; // สำหรับ Fade เข้า-ออก
     public float maxWidth = 400f;
+    public float uiShowDistance = 25f;
+    public float hpLerpSpeed = 5f;
+
+    private float targetHPWidth;
 
     [Header("Death Settings (การตาย)")]
     public GameObject deathEffectPrefab;     // Prefab ระเบิด/ควันตอนตาย
@@ -202,7 +210,17 @@ public class BossAI : MonoBehaviour
         if (hpBarImage != null)
         {
             barRect = hpBarImage.GetComponent<RectTransform>();
+            targetHPWidth = maxWidth;
         }
+
+        if (bossNameText != null)
+        {
+            bossNameText.text = bossDisplayName;
+        }
+
+        // เริ่มต้นด้วย UI จางหาย
+        if (bossUIContainer != null) bossUIContainer.alpha = 0f;
+
         UpdateHPUI();
     }
 
@@ -244,6 +262,26 @@ public class BossAI : MonoBehaviour
         }
 
         if (!isUsingSkill) UpdateAnimator();
+
+        UpdateUIStatus(distanceToPlayer);
+    }
+
+    void UpdateUIStatus(float distance)
+    {
+        // 1. จัดการ Fade UI ตามระยะ
+        if (bossUIContainer != null)
+        {
+            float targetAlpha = (distance <= uiShowDistance && !hasDied) ? 1f : 0f;
+            bossUIContainer.alpha = Mathf.MoveTowards(bossUIContainer.alpha, targetAlpha, Time.deltaTime * 2f);
+        }
+
+        // 2. จัดการ Lerp แถบเลือด
+        if (barRect != null)
+        {
+            float currentWidth = barRect.sizeDelta.x;
+            float newWidth = Mathf.Lerp(currentWidth, targetHPWidth, Time.deltaTime * hpLerpSpeed);
+            barRect.sizeDelta = new Vector2(newWidth, barRect.sizeDelta.y);
+        }
     }
 
     void CheckAttack(float distance)
@@ -876,11 +914,8 @@ public class BossAI : MonoBehaviour
 
     void UpdateHPUI()
     {
-        if (barRect != null)
-        {
-            float pct = Mathf.Clamp01(currentHealth / maxHealth);
-            barRect.sizeDelta = new Vector2(pct * maxWidth, barRect.sizeDelta.y);
-        }
+        float pct = Mathf.Clamp01(currentHealth / maxHealth);
+        targetHPWidth = pct * maxWidth;
     }
 
     void Die()
