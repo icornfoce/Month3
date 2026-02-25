@@ -236,26 +236,28 @@ MonoBehaviour:
   attackHitDelay: 1.2
   powerHitDelay: 1
   maxHealth: 200
+  hpBarImage: {fileID: 0}
+  maxWidth: 400
   deathEffectPrefab: {fileID: 0}
   destroyDelay: 5
-  attackSound: {fileID: 8300000, guid: 07cab916f0e8c9041a92dd21536eeda7, type: 3}
-  powerSound: {fileID: 8300000, guid: f342496f25232754fbb630fcae35f064, type: 3}
-  dashSound: {fileID: 8300000, guid: efb2953878139494b9b1c81c8c8caadc, type: 3}
-  rainSound: {fileID: 8300000, guid: 3255e7333eeb14a41923d9060f420928, type: 3}
-  homingSound: {fileID: 8300000, guid: 2473256953d32f94e90764ce53b03d64, type: 3}
-  burstSound: {fileID: 8300000, guid: 86e6b81c6cacf0d4aa178b9a9a59e62c, type: 3}
-  hitSound: {fileID: 8300000, guid: f95ccba48ecbf7f45896aa9e9e8f2cd6, type: 3}
-  deathSound: {fileID: 8300000, guid: e94913829e8abe7478e5ff47d8d14238, type: 3}
+  attackSound: {fileID: 8300000, guid: 99b12a2a951d27242b29afcb028299fd, type: 3}
+  powerSound: {fileID: 8300000, guid: 23ee4487de343c34c9a4344f43cc5260, type: 3}
+  dashSound: {fileID: 8300000, guid: ea2123f5402711f458fdc8c29f30e1b5, type: 3}
+  rainSound: {fileID: 8300000, guid: 2ad511f6ff5b4cb459da1840a52220db, type: 3}
+  homingSound: {fileID: 8300000, guid: 83ac224e1259e0a40a877215b6eb1638, type: 3}
+  burstSound: {fileID: 8300000, guid: 2d75e298ecf7e5e4cb77d9d9ecc35b49, type: 3}
+  hitSound: {fileID: 8300000, guid: e47cfba03f5225042872b84222e90bd8, type: 3}
+  deathSound: {fileID: 8300000, guid: 634decc910596fb47a31a463fae74ea9, type: 3}
   attackSoundDelay: 1
   powerSoundDelay: 0.5
   dashSoundDelay: 0.1
   rainSoundDelay: 3
   homingSoundDelay: 1
   burstSoundDelay: 1
+  currentPhase: 1
+  phase2Threshold: 0.5
   currentHealth: 0
   isDead: 0
-  jumpForce: 5
-  enableJumping: 1
   playerTag: Player
   stunDuration: 3
   isStunned: 0
