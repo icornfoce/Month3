@@ -4937,6 +4937,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73bb374a52565424a99d0c0a4eef4226, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossAI
+  isCinematic: 0
   globalSpeedMultiplier: 1
   moveSpeed: 3.5
   attackRange: 2
@@ -7079,10 +7080,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: def4ac1cd24161741972c93b1ac3080a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthManager
+  maxHealCharges: 3
+  currentHealCharges: 0
+  healAmount: 30
+  healKey: 101
+  healAudioSource: {fileID: 2003288776}
+  healSound: {fileID: 0}
   maxHealth: 100
   health: 100
   hpBarImage: {fileID: 1124638804}
   maxWidth: 315
+  healCountText: {fileID: 482813785}
   gameOverCG: {fileID: 1846922369}
   gameOverAudio: {fileID: 8845555092157507958, guid: 659befa5e5a1f8d4ba79086e06b11b90, type: 3}
   gameOverFadeSpeed: 0.5
@@ -10120,6 +10128,7 @@ GameObject:
   - component: {fileID: 6980478894674038806}
   - component: {fileID: 259993166433608440}
   - component: {fileID: 5862243926312135605}
+  - component: {fileID: 6980478894674038807}
   m_Layer: 8
   m_Name: patty
   m_TagString: Boss
@@ -10567,6 +10576,29 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!320 &6980478894674038807
+PlayableDirector:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6331840256925914444}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_PlayableAsset: {fileID: 11400000, guid: 01cf0e2b29a00e444a63eb8f145ce014, type: 2}
+  m_InitialState: 0
+  m_WrapMode: 2
+  m_DirectorUpdateMode: 1
+  m_InitialTime: 0
+  m_SceneBindings:
+  - key: {fileID: 6041009644845084384, guid: 01cf0e2b29a00e444a63eb8f145ce014, type: 2}
+    value: {fileID: 0}
+  - key: {fileID: -4743125110158253936, guid: 01cf0e2b29a00e444a63eb8f145ce014, type: 2}
+    value: {fileID: 0}
+  - key: {fileID: 4099877042701044197, guid: 01cf0e2b29a00e444a63eb8f145ce014, type: 2}
+    value: {fileID: 0}
+  m_ExposedReferences:
+    m_References: []
 --- !u!1 &6981367476145039069
 GameObject:
   m_ObjectHideFlags: 0
