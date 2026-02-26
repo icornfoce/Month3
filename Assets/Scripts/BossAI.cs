@@ -72,6 +72,11 @@ public class BossAI : MonoBehaviour
 
     private float targetHPWidth;
 
+    [Header("You Win Settings")]
+    public CanvasGroup youWinCG;
+    public AudioSource youWinAudio;
+    public float youWinFadeSpeed = 0.5f;
+
     [Header("Death Settings (การตาย)")]
     public GameObject deathEffectPrefab;     // Prefab ระเบิด/ควันตอนตาย
     public float destroyDelay = 5.0f;        // เวลาที่จะทำลายซากทิ้ง (0 = ไม่ทำลาย)
@@ -223,6 +228,20 @@ public class BossAI : MonoBehaviour
         // เริ่มต้นด้วย UI จางหาย
         if (bossUIContainer != null) bossUIContainer.alpha = 0f;
 
+        // Ensure You Win UI is hidden at start
+        if (youWinCG != null)
+        {
+            youWinCG.alpha = 0f;
+            youWinCG.blocksRaycasts = false;
+            youWinCG.interactable = false;
+            youWinCG.gameObject.SetActive(false); // ปิด Object ไปเลยชัวร์สุด
+        }
+        if (youWinAudio != null && youWinAudio.gameObject.scene.IsValid()) 
+        {
+            youWinAudio.Stop();
+            youWinAudio.volume = 1f;
+        }
+
         UpdateHPUI();
     }
 
@@ -230,6 +249,11 @@ public class BossAI : MonoBehaviour
     {
         if (player == null) return;
         
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        
+        // อัปเดต UI ตลอดเวลา แม้บอสจะตายหรือติดสตั้น เพื่อให้หลอดเลือดไหลลงจนสุด และให้ UI Fade ออกตอนตาย
+        UpdateUIStatus(distanceToPlayer);
+
         // ถ้าติ๊ก isDead ใน Inspector แต่ยังไม่ตายจริง -> สั่งตายเลย
         if (isDead && !hasDied)
         {
@@ -237,9 +261,7 @@ public class BossAI : MonoBehaviour
             return;
         }
 
-        if (hasDied || isStunned) return; // ถ้าตายแล้วหรือมึนอยู่ ไม่ต้องทำอะไร
-
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        if (hasDied || isStunned) return; // ถ้าตายแล้วหรือมึนอยู่ ไม่ต้องทำอะไร (หยุด AI)
 
         // เช็คว่ากำลังเล่น Animation โจมตีอยู่ไหม
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
@@ -264,8 +286,6 @@ public class BossAI : MonoBehaviour
         }
 
         if (!isUsingSkill) UpdateAnimator();
-
-        UpdateUIStatus(distanceToPlayer);
     }
 
     void UpdateUIStatus(float distance)
@@ -914,14 +934,71 @@ public class BossAI : MonoBehaviour
         // 4. รอเวลา
         yield return new WaitForSeconds(3.0f); // รอให้ท่าตายเล่นจบ
 
-        // 5. จัดการซาก
+        // 5. แสดงเข็มทิศเมาส์ให้ทับหน้าจอ
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        // 6. แสดงหน้าจอ You Win แบบ Fade-in (รอจนเสร็จ)
+        if (youWinCG != null)
+        {
+            yield return StartCoroutine(ShowYouWinRoutine());
+        }
+
+        // 7. จัดการซากหลังจาก UI ขึ้นเรียบร้อย
         if (destroyDelay > 0)
         {
-             Destroy(gameObject);
+             Destroy(gameObject, 1.0f); // ค่อยทำลายซากทิ้ง
         }
         else
         {
              this.enabled = false;
+        }
+    }
+
+    private IEnumerator ShowYouWinRoutine()
+    {
+        // หน่วงเวลาให้ตายเสร็จก่อนนิดนึง ค่อยขึ้นหน้า You Win
+        yield return new WaitForSeconds(1.0f);
+
+        if (youWinCG != null)
+        {
+            youWinCG.gameObject.SetActive(true); // เปิด Object ให้แสดงผล
+        }
+
+        if (youWinAudio != null) 
+        {
+            if (youWinAudio.gameObject.scene.IsValid() && youWinAudio.gameObject.activeInHierarchy)
+            {
+                youWinAudio.volume = 1f;
+                youWinAudio.loop = true; // เปิดให้วนลูป
+                youWinAudio.Play();
+            }
+            else if (youWinAudio.clip != null)
+            {
+                GameObject tempAudioObj = new GameObject("TempYouWinAudio");
+                AudioSource tempSource = tempAudioObj.AddComponent<AudioSource>();
+                tempSource.clip = youWinAudio.clip;
+                tempSource.spatialBlend = 0f; // 2D sound
+                tempSource.volume = 1f;
+                tempSource.loop = true;
+                tempSource.outputAudioMixerGroup = youWinAudio.outputAudioMixerGroup;
+                tempSource.Play();
+            }
+        }
+
+        float currentAlpha = 0f;
+        while (currentAlpha < 1f)
+        {
+            currentAlpha += Time.deltaTime * youWinFadeSpeed;
+            if (youWinCG != null) youWinCG.alpha = currentAlpha;
+            yield return null;
+        }
+
+        if (youWinCG != null)
+        {
+            youWinCG.alpha = 1f;
+            youWinCG.blocksRaycasts = true;
+            youWinCG.interactable = true;
         }
     }
 

@@ -46,6 +46,12 @@ public class PlayerMovement : MonoBehaviour
     public AudioClip walkSFX;
     public AudioClip runSFX;
     public AudioClip dodgeSFX;
+    
+    [Header("Audio Playback Speed")]
+    [Tooltip("ปรับความเร็วในการเล่นเสียงเดิน (ค่าน้อย = ช้าลงและเบสหนักขึ้น)")]
+    [Range(0.1f, 2f)] public float walkAudioSpeed = 0.8f; // ตั้งค่าเริ่มต้นให้ช้าลงตามที่ขอ
+    [Tooltip("ปรับความเร็วในการเล่นเสียงวิ่ง")]
+    [Range(0.1f, 2f)] public float runAudioSpeed = 1f;
 
     // ตัวแปรที่ใช้คำนวณความเร็วและการหมุน (แก้ Error CS0103)
     private float turnSmoothVelocity;
@@ -188,9 +194,10 @@ public class PlayerMovement : MonoBehaviour
                     {
                         audioSource.clip = targetClip;
                         audioSource.loop = true;
-                        audioSource.pitch = 1f; // ทำให้เสียงเป็นปกติ (ไม่สโลว์)
                         audioSource.Play();
                     }
+                    // อัปเดตความเร็วในการเล่นเสียง (Pitch)
+                    audioSource.pitch = isRunning ? runAudioSpeed : walkAudioSpeed;
                 }
             }
             else
