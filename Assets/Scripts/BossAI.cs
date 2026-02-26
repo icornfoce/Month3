@@ -8,6 +8,9 @@ using System.Collections;
 [RequireComponent(typeof(Animator))]
 public class BossAI : MonoBehaviour
 {
+    [Header("Timeline Settings")]
+    public bool isCinematic = false; // ถ้าเป็น true บอสจะหยุดนิ่ง
+
     [Header("Global Settings (ปรับความเร็วรวม)")]
     [Range(0.1f, 2.0f)]
     public float globalSpeedMultiplier = 1.0f; // ตัวคูณความเร็วทุกอย่าง (ลดเหลือ 0.5 คือช้าลงครึ่งนึง)
@@ -248,7 +251,18 @@ public class BossAI : MonoBehaviour
     void Update()
     {
         if (player == null) return;
-        
+
+        if (player == null || isCinematic) // เพิ่มเงื่อนไขเช็ค Cinematic
+        {
+            if (isCinematic && agent != null && agent.isOnNavMesh)
+            {
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;
+                animator.SetFloat(animSpeedID, 0); // หยุดเดินใน Animator
+            }
+            return;
+        }
+
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         
         // อัปเดต UI ตลอดเวลา แม้บอสจะตายหรือติดสตั้น เพื่อให้หลอดเลือดไหลลงจนสุด และให้ UI Fade ออกตอนตาย
@@ -286,6 +300,17 @@ public class BossAI : MonoBehaviour
         }
 
         if (!isUsingSkill) UpdateAnimator();
+    }
+
+    public void SetCinematicMode(bool enabled)
+    {
+        isCinematic = enabled;
+        if (enabled)
+        {
+            StopAllCoroutines(); // หยุดสกิลที่กำลังร่ายอยู่ทันที
+            isUsingSkill = false;
+            if (agent.isOnNavMesh) agent.isStopped = true;
+        }
     }
 
     void UpdateUIStatus(float distance)
