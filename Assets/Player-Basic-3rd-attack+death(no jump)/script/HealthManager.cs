@@ -31,10 +31,12 @@ public class HealthManager : MonoBehaviour
     private bool isDead = false;
     private Animator anim;
     private RectTransform barRect;
+    private AudioSource deathAudioSource;
 
     [Header("Game Over Settings")]
     public CanvasGroup gameOverCG;
     public AudioSource gameOverAudio;
+    public AudioClip deathSound;
     public float gameOverFadeSpeed = 0.5f;
 
     [Header("Stun Settings")]
@@ -55,6 +57,17 @@ public class HealthManager : MonoBehaviour
 
         // ถ้าลืมลาก AudioSource มา มันจะพยายามหาในตัวมันเองให้เองครับ
         if (healAudioSource == null) healAudioSource = GetComponent<AudioSource>();
+
+        if (deathAudioSource == null)
+        {
+            GameObject deathAudioObj = new GameObject("DeathAudioPlayer");
+            deathAudioObj.transform.SetParent(this.transform);
+            deathAudioObj.transform.localPosition = Vector3.zero;
+
+            deathAudioSource = deathAudioObj.AddComponent<AudioSource>();
+            deathAudioSource.spatialBlend = 0f; // 2D sound
+            deathAudioSource.playOnAwake = false;
+        }
 
         UpdateHPUI();
         UpdateHealUI();
@@ -164,6 +177,14 @@ public class HealthManager : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+
+        if (deathSound != null && deathAudioSource != null)
+        {
+            deathAudioSource.clip = deathSound;
+            deathAudioSource.loop = true;
+            deathAudioSource.Play();
+        }
+
         if (anim != null) anim.SetTrigger("Is Dead");
         Rigidbody rb = GetComponent<Rigidbody>();
         if (rb != null) { rb.linearVelocity = Vector3.zero; rb.isKinematic = true; }

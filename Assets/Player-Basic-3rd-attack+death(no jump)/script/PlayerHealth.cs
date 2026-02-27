@@ -19,12 +19,27 @@ public class PlayerHealth : MonoBehaviour
     private PlayerAttack attack;
     private Animator anim;
 
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip deathSFX;
+
     void Start()
     {
         currentHealth = maxHealth;
         movement = GetComponent<PlayerMovement>();
         attack = GetComponent<PlayerAttack>();
         anim = GetComponentInChildren<Animator>();
+
+        if (audioSource == null)
+        {
+            GameObject healthAudioObj = new GameObject("HealthAudio");
+            healthAudioObj.transform.SetParent(this.transform);
+            healthAudioObj.transform.localPosition = Vector3.zero;
+
+            audioSource = healthAudioObj.AddComponent<AudioSource>();
+            audioSource.spatialBlend = 0f; // 2D sound
+            audioSource.playOnAwake = false;
+        }
 
         // ตั้งค่าเริ่มต้นใน Animator
         if (anim != null)
@@ -104,6 +119,11 @@ public class PlayerHealth : MonoBehaviour
         isDead = true;
 
         Debug.Log("Player Died! Locking everything.");
+
+        if (audioSource != null && deathSFX != null)
+        {
+            audioSource.PlayOneShot(deathSFX);
+        }
 
         if (anim != null)
         {
